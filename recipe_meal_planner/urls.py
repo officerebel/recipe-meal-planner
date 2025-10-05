@@ -19,9 +19,17 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from django.http import JsonResponse
+
+def health_check(request):
+    """Simple health check endpoint for Railway"""
+    return JsonResponse({"status": "healthy", "service": "recipe-meal-planner"})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Health check for Railway
+    path('api/health/', health_check, name='health-check'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
