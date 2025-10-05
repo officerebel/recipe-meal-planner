@@ -258,6 +258,11 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+    
+    @action(detail=False, methods=['post'], url_path='generate')
+    def generate(self, request):
+        """Generate a new shopping list from meal plans (alternative endpoint)"""
+        return self.create(request)
         except Exception as e:
             logger.error(f"Unexpected error generating shopping list: {str(e)}")
             return Response(
