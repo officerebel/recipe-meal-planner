@@ -257,10 +257,8 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
     # Static files with WhiteNoise
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # CORS settings for production
-    CORS_ALLOWED_ORIGINS = [
-        "https://your-frontend-domain.railway.app",  # Update with your actual frontend domain
-    ]
+    # CORS settings for production - temporarily allow all for Railway health checks
+    CORS_ALLOW_ALL_ORIGINS = True
     
     # Update ALLOWED_HOSTS for Railway
     ALLOWED_HOSTS = [

@@ -28,8 +28,9 @@ def health_check(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Health check for Railway
+    # Health check for Railway (with and without trailing slash)
     path('api/health/', health_check, name='health-check'),
+    path('api/health', health_check, name='health-check-no-slash'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
