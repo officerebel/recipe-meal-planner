@@ -44,6 +44,6 @@ urlpatterns = [
     path('', include('families.urls')),
 ]
 
-# Serve media files during development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files during development and production
+# Note: In production, consider using a CDN or cloud storage for better performance
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
