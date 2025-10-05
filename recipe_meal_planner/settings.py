@@ -224,8 +224,7 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
-# Prod
-uction settings
+# Production settings
 import os
 
 # Railway deployment settings
