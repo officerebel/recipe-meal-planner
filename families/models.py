@@ -294,6 +294,8 @@ class FamilyInvitation(models.Model):
     def is_expired(self):
         """Check if invitation has expired"""
         from django.utils import timezone
+        if self.expires_at is None:
+            return False
         return timezone.now() > self.expires_at
     
     def accept(self, user):
