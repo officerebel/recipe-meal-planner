@@ -273,8 +273,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-# 
-Email Configuration
+# Email Configuration
+# Default email settings
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Recipe Meal Planner <noreply@recipeapp.com>')
+
 # For development, use console backend to see emails in terminal
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -286,7 +288,6 @@ else:
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Recipe Meal Planner <noreply@recipeapp.com>')
 
 # Email settings for family invitations
 FAMILY_INVITATION_FROM_EMAIL = DEFAULT_FROM_EMAIL
