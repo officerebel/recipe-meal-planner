@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from django.db import transaction
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
 import logging
 
 from .models import Family, FamilyMember, FamilyInvitation
@@ -90,8 +93,13 @@ class FamilyViewSet(viewsets.ModelViewSet):
                 expires_at=timezone.now() + timedelta(days=7)
             )
             
-            # TODO: Send invitation email
-            logger.info(f"Invitation sent to {invitation.email} for family {family.name}")
+            # Send invitation email
+            try:
+                self._send_invitation_email(invitation)
+                logger.info(f"Invitation email sent to {invitation.email} for family {family.name}")
+            except Exception as e:
+                logger.error(f"Failed to send invitation email: {e}")
+                # Don't fail the invitation creation if email fails
             
             return Response(
                 FamilyInvitationSerializer(invitation).data,
@@ -288,4 +296,40 @@ class FamilyViewSet(viewsets.ModelViewSet):
             return Response(
                 {'error': 'Uitnodiging niet gevonden'},
                 status=status.HTTP_404_NOT_FOUND
-            )
+            )    
+
+    def _send_invitation_email(self, invitation):
+        """Send invitation email to the invited user"""
+        subject = settings.FAMILY_INVITATION_SUBJECT
+        
+        # Create invitation acceptance URL
+        invitation_url = f"{settings.SITE_URL}/#/accept-invitation?token={invitation.id}"
+        
+        # Email content
+        message = f"""
+Hallo!
+
+Je bent uitgenodigd om lid te worden van de familie "{invitation.family.name}" op Recipe Meal Planner!
+
+Uitgenodigd door: {invitation.invited_by.get_full_name() or invitation.invited_by.username}
+Rol: {invitation.get_role_display()}
+
+{f'Persoonlijk bericht: {invitation.message}' if invitation.message else ''}
+
+Klik op de onderstaande link om de uitnodiging te accepteren:
+{invitation_url}
+
+Deze uitnodiging verloopt op: {invitation.expires_at.strftime('%d-%m-%Y om %H:%M')}
+
+Met vriendelijke groet,
+Het Recipe Meal Planner Team
+        """.strip()
+        
+        # Send email
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.FAMILY_INVITATION_FROM_EMAIL,
+            recipient_list=[invitation.email],
+            fail_silently=False,
+        )
