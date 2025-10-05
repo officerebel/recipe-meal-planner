@@ -1,0 +1,291 @@
+from rest_framework import viewsets, status, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+from django.db import transaction
+import logging
+
+from .models import Family, FamilyMember, FamilyInvitation
+from .serializers import (
+    FamilySerializer, FamilyListSerializer, FamilyMemberSerializer,
+    FamilyInvitationSerializer, InviteMemberSerializer, AcceptInvitationSerializer
+)
+
+logger = logging.getLogger(__name__)
+
+
+class FamilyViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing families"""
+    
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return FamilyListSerializer
+        return FamilySerializer
+    
+    def get_queryset(self):
+        """Return families where user is a member"""
+        return Family.objects.filter(
+            members__user=self.request.user
+        ).distinct()
+    
+    def perform_create(self, serializer):
+        """Create family and add creator as admin"""
+        with transaction.atomic():
+            family = serializer.save()
+            
+            # Add creator as admin
+            FamilyMember.objects.create(
+                family=family,
+                user=self.request.user,
+                role='admin',
+                can_invite_members=True
+            )
+            
+            logger.info(f"Family '{family.name}' created by {self.request.user.username}")
+    
+    @action(detail=True, methods=['get'])
+    def members(self, request, pk=None):
+        """Get family members"""
+        family = self.get_object()
+        members = family.members.all()
+        serializer = FamilyMemberSerializer(members, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def invite_member(self, request, pk=None):
+        """Invite a new family member"""
+        family = self.get_object()
+        
+        # Check if user has permission to invite
+        try:
+            member = family.members.get(user=request.user)
+            if not member.has_permission('invite_members'):
+                return Response(
+                    {'error': 'Je hebt geen toestemming om leden uit te nodigen'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Je bent geen lid van deze familie'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = InviteMemberSerializer(
+            data=request.data,
+            context={'family': family}
+        )
+        
+        if serializer.is_valid():
+            # Create invitation
+            invitation = FamilyInvitation.objects.create(
+                family=family,
+                invited_by=request.user,
+                email=serializer.validated_data['email'],
+                role=serializer.validated_data['role'],
+                message=serializer.validated_data.get('message', ''),
+                expires_at=timezone.now() + timedelta(days=7)
+            )
+            
+            # TODO: Send invitation email
+            logger.info(f"Invitation sent to {invitation.email} for family {family.name}")
+            
+            return Response(
+                FamilyInvitationSerializer(invitation).data,
+                status=status.HTTP_201_CREATED
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['patch'])
+    def update_member(self, request, pk=None):
+        """Update family member role/permissions"""
+        family = self.get_object()
+        member_id = request.data.get('member_id')
+        
+        if not member_id:
+            return Response(
+                {'error': 'member_id is verplicht'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user is admin
+        try:
+            requesting_member = family.members.get(user=request.user)
+            if requesting_member.role != 'admin':
+                return Response(
+                    {'error': 'Alleen beheerders kunnen leden bijwerken'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Je bent geen lid van deze familie'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get member to update
+        try:
+            member = family.members.get(id=member_id)
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Lid niet gevonden'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Prevent removing last admin
+        if (member.role == 'admin' and 
+            request.data.get('role') != 'admin' and 
+            family.admin_count <= 1):
+            return Response(
+                {'error': 'Kan laatste beheerder niet degraderen'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = FamilyMemberSerializer(
+            member, 
+            data=request.data, 
+            partial=True
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['delete'])
+    def remove_member(self, request, pk=None):
+        """Remove family member"""
+        family = self.get_object()
+        member_id = request.data.get('member_id')
+        
+        if not member_id:
+            return Response(
+                {'error': 'member_id is verplicht'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get member to remove
+        try:
+            member = family.members.get(id=member_id)
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Lid niet gevonden'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions
+        requesting_member = family.members.get(user=request.user)
+        
+        # Users can remove themselves, admins can remove others
+        if (member.user != request.user and 
+            requesting_member.role != 'admin'):
+            return Response(
+                {'error': 'Geen toestemming om dit lid te verwijderen'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Prevent removing last admin
+        if member.role == 'admin' and family.admin_count <= 1:
+            return Response(
+                {'error': 'Kan laatste beheerder niet verwijderen'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        member.delete()
+        logger.info(f"Member {member.user.username} removed from family {family.name}")
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=False, methods=['get'])
+    def invitations(self, request):
+        """Get pending invitations for current user"""
+        invitations = FamilyInvitation.objects.filter(
+            email=request.user.email,
+            status='pending'
+        )
+        
+        serializer = FamilyInvitationSerializer(invitations, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def accept_invitation(self, request):
+        """Accept family invitation"""
+        serializer = AcceptInvitationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            invitation_id = serializer.validated_data['invitation_id']
+            
+            try:
+                invitation = FamilyInvitation.objects.get(id=invitation_id)
+                
+                # Verify invitation is for current user
+                if invitation.email != request.user.email:
+                    return Response(
+                        {'error': 'Deze uitnodiging is niet voor jou'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                # Accept invitation
+                if invitation.accept(request.user):
+                    logger.info(f"User {request.user.username} accepted invitation to family {invitation.family.name}")
+                    return Response(
+                        {'message': 'Uitnodiging geaccepteerd!'},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {'error': 'Kan uitnodiging niet accepteren'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+            except FamilyInvitation.DoesNotExist:
+                return Response(
+                    {'error': 'Uitnodiging niet gevonden'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'])
+    def decline_invitation(self, request):
+        """Decline family invitation"""
+        invitation_id = request.data.get('invitation_id')
+        
+        if not invitation_id:
+            return Response(
+                {'error': 'invitation_id is verplicht'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            invitation = FamilyInvitation.objects.get(id=invitation_id)
+            
+            # Verify invitation is for current user
+            if invitation.email != request.user.email:
+                return Response(
+                    {'error': 'Deze uitnodiging is niet voor jou'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Decline invitation
+            if invitation.decline():
+                logger.info(f"User {request.user.username} declined invitation to family {invitation.family.name}")
+                return Response(
+                    {'message': 'Uitnodiging afgewezen'},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {'error': 'Kan uitnodiging niet afwijzen'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+        except FamilyInvitation.DoesNotExist:
+            return Response(
+                {'error': 'Uitnodiging niet gevonden'},
+                status=status.HTTP_404_NOT_FOUND
+            )

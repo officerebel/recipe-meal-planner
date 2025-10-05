@@ -1,0 +1,2577 @@
+openapi: 3.0.3
+info:
+  title: Recipe & Meal Planner API
+  version: 1.0.0
+  description: A comprehensive API for managing recipes, meal planning, and shopping
+    lists with PDF import capabilities.
+paths:
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Authenticate user and return authentication token
+      summary: Login user
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Login successful
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Invalid credentials
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: Logout current user and invalidate authentication token
+      summary: Logout user
+      tags:
+      - Authentication
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Logout successful
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Authentication required
+          description: ''
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Create a new user account and return authentication token
+      summary: Register a new user
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                description: User registered successfully
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Validation errors
+          description: ''
+  /api/auth/user/:
+    get:
+      operationId: auth_user_retrieve
+      description: Get current authenticated user profile information
+      summary: Get user profile
+      tags:
+      - Authentication
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Authentication required
+          description: ''
+  /api/auth/user/update/:
+    put:
+      operationId: auth_user_update_update
+      description: Update user profile
+      tags:
+      - auth
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: auth_user_update_partial_update
+      description: Update user profile
+      tags:
+      - auth
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/meal-assignments/:
+    get:
+      operationId: meal_assignments_list
+      description: ViewSet for MealAssignment operations
+      parameters:
+      - in: query
+        name: daily_meals__meal_plan
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: meal_type
+        schema:
+          type: string
+          enum:
+          - breakfast
+          - dessert
+          - dinner
+          - lunch
+          - snack
+        description: |-
+          Type of meal (breakfast, lunch, dinner, etc.)
+
+          * `breakfast` - Breakfast
+          * `lunch` - Lunch
+          * `dinner` - Dinner
+          * `snack` - Snack
+          * `dessert` - Dessert
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - meal-assignments
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMealAssignmentList'
+          description: ''
+    post:
+      operationId: meal_assignments_create
+      description: ViewSet for MealAssignment operations
+      tags:
+      - meal-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealAssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealAssignmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealAssignmentRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealAssignment'
+          description: ''
+  /api/meal-assignments/{id}/:
+    get:
+      operationId: meal_assignments_retrieve
+      description: ViewSet for MealAssignment operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal assignment.
+        required: true
+      tags:
+      - meal-assignments
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealAssignment'
+          description: ''
+    put:
+      operationId: meal_assignments_update
+      description: ViewSet for MealAssignment operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal assignment.
+        required: true
+      tags:
+      - meal-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealAssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealAssignmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealAssignmentRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealAssignment'
+          description: ''
+    patch:
+      operationId: meal_assignments_partial_update
+      description: ViewSet for MealAssignment operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal assignment.
+        required: true
+      tags:
+      - meal-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMealAssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMealAssignmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMealAssignmentRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealAssignment'
+          description: ''
+    delete:
+      operationId: meal_assignments_destroy
+      description: Delete a meal assignment
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal assignment.
+        required: true
+      tags:
+      - meal-assignments
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/meal-plans/:
+    get:
+      operationId: meal_plans_list
+      description: ViewSet for MealPlan CRUD operations
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - meal-plans
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMealPlanListList'
+          description: ''
+    post:
+      operationId: meal_plans_create
+      description: Create a new meal plan with daily meal slots
+      tags:
+      - meal-plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealPlan'
+          description: ''
+  /api/meal-plans/{id}/:
+    get:
+      operationId: meal_plans_retrieve
+      description: ViewSet for MealPlan CRUD operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal plan.
+        required: true
+      tags:
+      - meal-plans
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealPlan'
+          description: ''
+    put:
+      operationId: meal_plans_update
+      description: ViewSet for MealPlan CRUD operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal plan.
+        required: true
+      tags:
+      - meal-plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealPlan'
+          description: ''
+    patch:
+      operationId: meal_plans_partial_update
+      description: ViewSet for MealPlan CRUD operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal plan.
+        required: true
+      tags:
+      - meal-plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMealPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMealPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMealPlanRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealPlan'
+          description: ''
+    delete:
+      operationId: meal_plans_destroy
+      description: ViewSet for MealPlan CRUD operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal plan.
+        required: true
+      tags:
+      - meal-plans
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/meal-plans/{id}/assign-meal/:
+    post:
+      operationId: meal_plans_assign_meal_create
+      description: Assign a recipe to a specific meal slot
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal plan.
+        required: true
+      tags:
+      - meal-plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealPlanRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealPlan'
+          description: ''
+  /api/meal-plans/{id}/summary/:
+    get:
+      operationId: meal_plans_summary_retrieve
+      description: Get meal plan summary with statistics
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal plan.
+        required: true
+      tags:
+      - meal-plans
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealPlan'
+          description: ''
+  /api/recipes/:
+    get:
+      operationId: recipes_list
+      description: Get a paginated list of user's recipes with filtering and search
+        capabilities
+      summary: List recipes
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Filter by category
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search in title, description, and ingredients
+      - in: query
+        name: source
+        schema:
+          type: string
+        description: Filter by source (pdf, manual, database)
+      - in: query
+        name: tag
+        schema:
+          type: string
+        description: Filter by tag
+      tags:
+      - Recipes
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecipeListList'
+          description: ''
+    post:
+      operationId: recipes_create
+      description: Create a new recipe
+      summary: Create recipe
+      tags:
+      - Recipes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+  /api/recipes/{id}/:
+    get:
+      operationId: recipes_retrieve
+      description: Get detailed information about a specific recipe
+      summary: Get recipe
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this recipe.
+        required: true
+      tags:
+      - Recipes
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+    put:
+      operationId: recipes_update
+      description: Update an existing recipe
+      summary: Update recipe
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this recipe.
+        required: true
+      tags:
+      - Recipes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+    patch:
+      operationId: recipes_partial_update
+      description: Partially update an existing recipe
+      summary: Partially update recipe
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this recipe.
+        required: true
+      tags:
+      - Recipes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRecipeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRecipeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRecipeRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+    delete:
+      operationId: recipes_destroy
+      description: Delete a recipe
+      summary: Delete recipe
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this recipe.
+        required: true
+      tags:
+      - Recipes
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/recipes/categories/:
+    get:
+      operationId: recipes_categories_retrieve
+      description: Get all unique categories
+      tags:
+      - recipes
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+  /api/recipes/import/:
+    post:
+      operationId: recipes_import_create
+      description: Import a recipe by uploading a PDF file. The system will extract
+        recipe information automatically.
+      summary: Import recipe from PDF
+      tags:
+      - Recipes
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to import (max 10MB)
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Invalid file or extraction failed
+          description: ''
+  /api/recipes/preview/:
+    post:
+      operationId: recipes_preview_create
+      description: Preview recipe extraction from PDF without saving to database
+      summary: Preview recipe from PDF
+      tags:
+      - Recipes
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to preview (max 10MB)
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Recipe preview data
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Invalid file or extraction failed
+          description: ''
+  /api/recipes/statistics/:
+    get:
+      operationId: recipes_statistics_retrieve
+      description: Get recipe collection statistics
+      tags:
+      - recipes
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+  /api/recipes/tags/:
+    get:
+      operationId: recipes_tags_retrieve
+      description: Get all unique tags
+      tags:
+      - recipes
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+  /api/recipes/validate/:
+    post:
+      operationId: recipes_validate_create
+      description: Validate a PDF file for recipe import
+      tags:
+      - recipes
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecipeRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+  /api/shopping-list-items/:
+    get:
+      operationId: shopping_list_items_list
+      description: ViewSet for ShoppingListItem operations
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          enum:
+          - BAKERY
+          - BEVERAGES
+          - CONDIMENTS
+          - DAIRY
+          - FROZEN
+          - MEAT
+          - OTHER
+          - PANTRY
+          - PRODUCE
+          - SPICES
+        description: |-
+          * `PRODUCE` - Produce
+          * `MEAT` - Meat
+          * `DAIRY` - Dairy
+          * `PANTRY` - Pantry
+          * `FROZEN` - Frozen
+          * `BAKERY` - Bakery
+          * `BEVERAGES` - Beverages
+          * `CONDIMENTS` - Condiments
+          * `SPICES` - Spices
+          * `OTHER` - Other
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: purchased
+        schema:
+          type: boolean
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: shopping_list
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - shopping-list-items
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShoppingListItemList'
+          description: ''
+    post:
+      operationId: shopping_list_items_create
+      description: ViewSet for ShoppingListItem operations
+      tags:
+      - shopping-list-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingListItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShoppingListItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShoppingListItemRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListItem'
+          description: ''
+  /api/shopping-list-items/{id}/:
+    get:
+      operationId: shopping_list_items_retrieve
+      description: ViewSet for ShoppingListItem operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list item.
+        required: true
+      tags:
+      - shopping-list-items
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListItem'
+          description: ''
+    put:
+      operationId: shopping_list_items_update
+      description: ViewSet for ShoppingListItem operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list item.
+        required: true
+      tags:
+      - shopping-list-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingListItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShoppingListItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShoppingListItemRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListItem'
+          description: ''
+    patch:
+      operationId: shopping_list_items_partial_update
+      description: ViewSet for ShoppingListItem operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list item.
+        required: true
+      tags:
+      - shopping-list-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListItemRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListItem'
+          description: ''
+    delete:
+      operationId: shopping_list_items_destroy
+      description: ViewSet for ShoppingListItem operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list item.
+        required: true
+      tags:
+      - shopping-list-items
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/shopping-list-items/{id}/toggle-purchased/:
+    patch:
+      operationId: shopping_list_items_toggle_purchased_partial_update
+      description: Toggle the purchased status of a shopping list item
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list item.
+        required: true
+      tags:
+      - shopping-list-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListItemRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListItem'
+          description: ''
+  /api/shopping-lists/:
+    get:
+      operationId: shopping_lists_list
+      description: ViewSet for ShoppingList operations
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - shopping-lists
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShoppingListList'
+          description: ''
+    post:
+      operationId: shopping_lists_create
+      description: Generate a new shopping list from meal plans
+      tags:
+      - shopping-lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShoppingListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShoppingListRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingList'
+          description: ''
+  /api/shopping-lists/{id}/:
+    get:
+      operationId: shopping_lists_retrieve
+      description: ViewSet for ShoppingList operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list.
+        required: true
+      tags:
+      - shopping-lists
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingList'
+          description: ''
+    put:
+      operationId: shopping_lists_update
+      description: ViewSet for ShoppingList operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list.
+        required: true
+      tags:
+      - shopping-lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShoppingListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShoppingListRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingList'
+          description: ''
+    patch:
+      operationId: shopping_lists_partial_update
+      description: ViewSet for ShoppingList operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list.
+        required: true
+      tags:
+      - shopping-lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedShoppingListRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingList'
+          description: ''
+    delete:
+      operationId: shopping_lists_destroy
+      description: ViewSet for ShoppingList operations
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list.
+        required: true
+      tags:
+      - shopping-lists
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/shopping-lists/{id}/by-category/:
+    get:
+      operationId: shopping_lists_by_category_retrieve
+      description: Get shopping list items organized by category
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this shopping list.
+        required: true
+      tags:
+      - shopping-lists
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingList'
+          description: ''
+components:
+  schemas:
+    DailyMeals:
+      type: object
+      description: Serializer for DailyMeals model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        date:
+          type: string
+          format: date
+          description: Date for these meals
+        meal_assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealAssignment'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - date
+      - id
+      - meal_assignments
+      - updated_at
+    DailyMealsRequest:
+      type: object
+      description: Serializer for DailyMeals model
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date for these meals
+      required:
+      - date
+    Ingredient:
+      type: object
+      description: Serializer for Ingredient model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Ingredient name
+          maxLength: 200
+        amount:
+          type: string
+          description: Amount (e.g., '2 cups', '1 tbsp')
+          maxLength: 50
+        unit:
+          type: string
+          description: Unit of measurement
+          maxLength: 50
+        notes:
+          type: string
+          description: Additional notes (e.g., 'chopped', 'optional')
+          maxLength: 200
+        category:
+          allOf:
+          - $ref: '#/components/schemas/IngredientCategoryEnum'
+          description: |-
+            Ingredient category for shopping list organization
+
+            * `produce` - Produce
+            * `meat` - Meat & Seafood
+            * `dairy` - Dairy & Eggs
+            * `pantry` - Pantry
+            * `frozen` - Frozen
+            * `bakery` - Bakery
+            * `beverages` - Beverages
+            * `condiments` - Condiments & Sauces
+            * `spices` - Spices & Seasonings
+            * `other` - Other
+        order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+      required:
+      - id
+      - name
+    IngredientCategoryEnum:
+      enum:
+      - produce
+      - meat
+      - dairy
+      - pantry
+      - frozen
+      - bakery
+      - beverages
+      - condiments
+      - spices
+      - other
+      type: string
+      description: |-
+        * `produce` - Produce
+        * `meat` - Meat & Seafood
+        * `dairy` - Dairy & Eggs
+        * `pantry` - Pantry
+        * `frozen` - Frozen
+        * `bakery` - Bakery
+        * `beverages` - Beverages
+        * `condiments` - Condiments & Sauces
+        * `spices` - Spices & Seasonings
+        * `other` - Other
+    IngredientRequest:
+      type: object
+      description: Serializer for Ingredient model
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Ingredient name
+          maxLength: 200
+        amount:
+          type: string
+          description: Amount (e.g., '2 cups', '1 tbsp')
+          maxLength: 50
+        unit:
+          type: string
+          description: Unit of measurement
+          maxLength: 50
+        notes:
+          type: string
+          description: Additional notes (e.g., 'chopped', 'optional')
+          maxLength: 200
+        category:
+          allOf:
+          - $ref: '#/components/schemas/IngredientCategoryEnum'
+          description: |-
+            Ingredient category for shopping list organization
+
+            * `produce` - Produce
+            * `meat` - Meat & Seafood
+            * `dairy` - Dairy & Eggs
+            * `pantry` - Pantry
+            * `frozen` - Frozen
+            * `bakery` - Bakery
+            * `beverages` - Beverages
+            * `condiments` - Condiments & Sauces
+            * `spices` - Spices & Seasonings
+            * `other` - Other
+        order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+      required:
+      - name
+    MealAssignment:
+      type: object
+      description: Serializer for MealAssignment model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        recipe:
+          allOf:
+          - $ref: '#/components/schemas/RecipeList'
+          readOnly: true
+        meal_type:
+          allOf:
+          - $ref: '#/components/schemas/MealTypeEnum'
+          description: |-
+            Type of meal (breakfast, lunch, dinner, etc.)
+
+            * `breakfast` - Breakfast
+            * `lunch` - Lunch
+            * `dinner` - Dinner
+            * `snack` - Snack
+            * `dessert` - Dessert
+        servings_planned:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings planned (overrides recipe default)
+        notes:
+          type: string
+          description: Additional notes for this meal assignment
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        effective_servings:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - effective_servings
+      - id
+      - meal_type
+      - recipe
+      - updated_at
+    MealAssignmentRequest:
+      type: object
+      description: Serializer for MealAssignment model
+      properties:
+        recipe_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        meal_type:
+          allOf:
+          - $ref: '#/components/schemas/MealTypeEnum'
+          description: |-
+            Type of meal (breakfast, lunch, dinner, etc.)
+
+            * `breakfast` - Breakfast
+            * `lunch` - Lunch
+            * `dinner` - Dinner
+            * `snack` - Snack
+            * `dessert` - Dessert
+        servings_planned:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings planned (overrides recipe default)
+        notes:
+          type: string
+          description: Additional notes for this meal assignment
+      required:
+      - meal_type
+      - recipe_id
+    MealPlan:
+      type: object
+      description: Serializer for MealPlan model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Name for this meal plan (e.g., 'Week of Jan 15')
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date of the meal plan
+        end_date:
+          type: string
+          format: date
+          description: End date of the meal plan
+        daily_meals:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyMeals'
+          readOnly: true
+        total_days:
+          type: string
+          readOnly: true
+        total_meals:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - daily_meals
+      - end_date
+      - id
+      - name
+      - start_date
+      - total_days
+      - total_meals
+      - updated_at
+    MealPlanList:
+      type: object
+      description: Lightweight serializer for meal plan lists
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Name for this meal plan (e.g., 'Week of Jan 15')
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date of the meal plan
+        end_date:
+          type: string
+          format: date
+          description: End date of the meal plan
+        total_days:
+          type: string
+          readOnly: true
+        total_meals:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - end_date
+      - id
+      - name
+      - start_date
+      - total_days
+      - total_meals
+      - updated_at
+    MealPlanListRequest:
+      type: object
+      description: Lightweight serializer for meal plan lists
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name for this meal plan (e.g., 'Week of Jan 15')
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date of the meal plan
+        end_date:
+          type: string
+          format: date
+          description: End date of the meal plan
+      required:
+      - end_date
+      - name
+      - start_date
+    MealPlanRequest:
+      type: object
+      description: Serializer for MealPlan model
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name for this meal plan (e.g., 'Week of Jan 15')
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date of the meal plan
+        end_date:
+          type: string
+          format: date
+          description: End date of the meal plan
+      required:
+      - end_date
+      - name
+      - start_date
+    MealTypeEnum:
+      enum:
+      - breakfast
+      - lunch
+      - dinner
+      - snack
+      - dessert
+      type: string
+      description: |-
+        * `breakfast` - Breakfast
+        * `lunch` - Lunch
+        * `dinner` - Dinner
+        * `snack` - Snack
+        * `dessert` - Dessert
+    PaginatedMealAssignmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealAssignment'
+    PaginatedMealPlanListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealPlanList'
+    PaginatedRecipeListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeList'
+    PaginatedShoppingListItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingListItem'
+    PaginatedShoppingListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingList'
+    PatchedMealAssignmentRequest:
+      type: object
+      description: Serializer for MealAssignment model
+      properties:
+        recipe_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        meal_type:
+          allOf:
+          - $ref: '#/components/schemas/MealTypeEnum'
+          description: |-
+            Type of meal (breakfast, lunch, dinner, etc.)
+
+            * `breakfast` - Breakfast
+            * `lunch` - Lunch
+            * `dinner` - Dinner
+            * `snack` - Snack
+            * `dessert` - Dessert
+        servings_planned:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings planned (overrides recipe default)
+        notes:
+          type: string
+          description: Additional notes for this meal assignment
+    PatchedMealPlanRequest:
+      type: object
+      description: Serializer for MealPlan model
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name for this meal plan (e.g., 'Week of Jan 15')
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date of the meal plan
+        end_date:
+          type: string
+          format: date
+          description: End date of the meal plan
+    PatchedRecipeRequest:
+      type: object
+      description: Serializer for Recipe model
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Recipe title
+          maxLength: 200
+        description:
+          type: string
+          description: Recipe description
+        image:
+          type: string
+          format: binary
+          nullable: true
+          description: Recipe image
+        prep_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Preparation time in minutes
+        cook_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Cooking time in minutes
+        total_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Total time in minutes
+        servings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings
+        instructions:
+          description: List of cooking instructions
+        categories:
+          description: Recipe categories
+        tags:
+          description: Recipe tags
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          description: |-
+            Source of the recipe
+
+            * `pdf` - PDF Import
+            * `manual` - Manual Entry
+            * `database` - Database Import
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientRequest'
+    PatchedShoppingListItemRequest:
+      type: object
+      description: Serializer for ShoppingListItem model
+      properties:
+        ingredient_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        total_amount:
+          type: string
+          minLength: 1
+          description: Consolidated amount needed
+          maxLength: 100
+        unit:
+          type: string
+          maxLength: 50
+        category:
+          $ref: '#/components/schemas/ShoppingListItemCategoryEnum'
+        purchased:
+          type: boolean
+        notes:
+          type: string
+    PatchedShoppingListRequest:
+      type: object
+      description: Serializer for ShoppingList model
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name for this shopping list
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date for meal plans to include
+        end_date:
+          type: string
+          format: date
+          description: End date for meal plans to include
+    Recipe:
+      type: object
+      description: Serializer for Recipe model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          description: Recipe title
+          maxLength: 200
+        description:
+          type: string
+          description: Recipe description
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Recipe image
+        prep_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Preparation time in minutes
+        cook_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Cooking time in minutes
+        total_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Total time in minutes
+        servings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings
+        instructions:
+          description: List of cooking instructions
+        categories:
+          description: Recipe categories
+        tags:
+          description: Recipe tags
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          description: |-
+            Source of the recipe
+
+            * `pdf` - PDF Import
+            * `manual` - Manual Entry
+            * `database` - Database Import
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        source_metadata:
+          allOf:
+          - $ref: '#/components/schemas/SourceMetadata'
+          readOnly: true
+        ingredient_count:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - ingredient_count
+      - source_metadata
+      - title
+      - updated_at
+    RecipeList:
+      type: object
+      description: Lightweight serializer for recipe lists
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          description: Recipe title
+          maxLength: 200
+        description:
+          type: string
+          description: Recipe description
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Recipe image
+        prep_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Preparation time in minutes
+        cook_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Cooking time in minutes
+        total_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Total time in minutes
+        servings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings
+        categories:
+          description: Recipe categories
+        tags:
+          description: Recipe tags
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          description: |-
+            Source of the recipe
+
+            * `pdf` - PDF Import
+            * `manual` - Manual Entry
+            * `database` - Database Import
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ingredient_count:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - ingredient_count
+      - title
+      - updated_at
+    RecipeListRequest:
+      type: object
+      description: Lightweight serializer for recipe lists
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Recipe title
+          maxLength: 200
+        description:
+          type: string
+          description: Recipe description
+        image:
+          type: string
+          format: binary
+          nullable: true
+          description: Recipe image
+        prep_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Preparation time in minutes
+        cook_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Cooking time in minutes
+        total_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Total time in minutes
+        servings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings
+        categories:
+          description: Recipe categories
+        tags:
+          description: Recipe tags
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          description: |-
+            Source of the recipe
+
+            * `pdf` - PDF Import
+            * `manual` - Manual Entry
+            * `database` - Database Import
+      required:
+      - title
+    RecipeRequest:
+      type: object
+      description: Serializer for Recipe model
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Recipe title
+          maxLength: 200
+        description:
+          type: string
+          description: Recipe description
+        image:
+          type: string
+          format: binary
+          nullable: true
+          description: Recipe image
+        prep_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Preparation time in minutes
+        cook_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Cooking time in minutes
+        total_time:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Total time in minutes
+        servings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+          description: Number of servings
+        instructions:
+          description: List of cooking instructions
+        categories:
+          description: Recipe categories
+        tags:
+          description: Recipe tags
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          description: |-
+            Source of the recipe
+
+            * `pdf` - PDF Import
+            * `manual` - Manual Entry
+            * `database` - Database Import
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientRequest'
+      required:
+      - title
+    ShoppingList:
+      type: object
+      description: Serializer for ShoppingList model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Name for this shopping list
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date for meal plans to include
+        end_date:
+          type: string
+          format: date
+          description: End date for meal plans to include
+        generated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingListItem'
+          readOnly: true
+        meal_plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealPlanList'
+          readOnly: true
+        total_items:
+          type: string
+          readOnly: true
+        purchased_items:
+          type: string
+          readOnly: true
+      required:
+      - end_date
+      - generated_at
+      - id
+      - items
+      - meal_plans
+      - name
+      - purchased_items
+      - start_date
+      - total_items
+    ShoppingListItem:
+      type: object
+      description: Serializer for ShoppingListItem model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        ingredient_name:
+          type: string
+          maxLength: 200
+        total_amount:
+          type: string
+          description: Consolidated amount needed
+          maxLength: 100
+        unit:
+          type: string
+          maxLength: 50
+        category:
+          $ref: '#/components/schemas/ShoppingListItemCategoryEnum'
+        purchased:
+          type: boolean
+        purchased_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        notes:
+          type: string
+        source_recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeList'
+          readOnly: true
+      required:
+      - id
+      - ingredient_name
+      - purchased_at
+      - source_recipes
+      - total_amount
+    ShoppingListItemCategoryEnum:
+      enum:
+      - PRODUCE
+      - MEAT
+      - DAIRY
+      - PANTRY
+      - FROZEN
+      - BAKERY
+      - BEVERAGES
+      - CONDIMENTS
+      - SPICES
+      - OTHER
+      type: string
+      description: |-
+        * `PRODUCE` - Produce
+        * `MEAT` - Meat
+        * `DAIRY` - Dairy
+        * `PANTRY` - Pantry
+        * `FROZEN` - Frozen
+        * `BAKERY` - Bakery
+        * `BEVERAGES` - Beverages
+        * `CONDIMENTS` - Condiments
+        * `SPICES` - Spices
+        * `OTHER` - Other
+    ShoppingListItemRequest:
+      type: object
+      description: Serializer for ShoppingListItem model
+      properties:
+        ingredient_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        total_amount:
+          type: string
+          minLength: 1
+          description: Consolidated amount needed
+          maxLength: 100
+        unit:
+          type: string
+          maxLength: 50
+        category:
+          $ref: '#/components/schemas/ShoppingListItemCategoryEnum'
+        purchased:
+          type: boolean
+        notes:
+          type: string
+      required:
+      - ingredient_name
+      - total_amount
+    ShoppingListRequest:
+      type: object
+      description: Serializer for ShoppingList model
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name for this shopping list
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+          description: Start date for meal plans to include
+        end_date:
+          type: string
+          format: date
+          description: End date for meal plans to include
+      required:
+      - end_date
+      - name
+      - start_date
+    SourceEnum:
+      enum:
+      - pdf
+      - manual
+      - database
+      type: string
+      description: |-
+        * `pdf` - PDF Import
+        * `manual` - Manual Entry
+        * `database` - Database Import
+    SourceMetadata:
+      type: object
+      description: Serializer for SourceMetadata model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        original_filename:
+          type: string
+          description: Original filename of imported file
+          maxLength: 255
+        file_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: File size in bytes
+        page_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Number of pages in PDF
+        import_date:
+          type: string
+          format: date-time
+          readOnly: true
+        import_success:
+          type: boolean
+        import_warnings:
+          description: List of warnings during import
+        import_errors:
+          description: List of errors during import
+        raw_text:
+          type: string
+          description: Raw text extracted from source
+      required:
+      - id
+      - import_date
+    SourceMetadataRequest:
+      type: object
+      description: Serializer for SourceMetadata model
+      properties:
+        original_filename:
+          type: string
+          description: Original filename of imported file
+          maxLength: 255
+        file_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: File size in bytes
+        page_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Number of pages in PDF
+        import_success:
+          type: boolean
+        import_warnings:
+          description: List of warnings during import
+        import_errors:
+          description: List of errors during import
+        raw_text:
+          type: string
+          description: Raw text extracted from source
+    User:
+      type: object
+      description: Serializer for user profile
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - id
+    UserLoginRequest:
+      type: object
+      description: Serializer for user login
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - email
+      - password
+    UserRegistrationRequest:
+      type: object
+      description: Serializer for user registration
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - password_confirm
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
+servers:
+- url: http://localhost:8000
+  description: Development server
+tags:
+- name: Authentication
+  description: User authentication and registration
+- name: Recipes
+  description: Recipe management and PDF import
+- name: Meal Planning
+  description: Meal plan creation and management
+- name: Shopping Lists
+  description: Shopping list generation and management
