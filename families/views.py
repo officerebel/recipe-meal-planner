@@ -405,6 +405,84 @@ class FamilyViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=True, methods=['post'])
+    def create_member(self, request, pk=None):
+        """Create a new user and add them to the family"""
+        family = self.get_object()
+        
+        # Check if user has permission to add members
+        try:
+            member = family.members.get(user=request.user)
+            if not member.has_permission('invite_members'):
+                return Response(
+                    {'error': 'Je hebt geen toestemming om leden toe te voegen'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Je bent geen lid van deze familie'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validate required fields
+        email = request.data.get('email')
+        first_name = request.data.get('first_name')
+        password = request.data.get('password')
+        role = request.data.get('role', 'member')
+        
+        if not all([email, first_name, password]):
+            return Response(
+                {'error': 'E-mail, voornaam en wachtwoord zijn verplicht'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user already exists
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {'error': 'Er bestaat al een account met dit e-mailadres'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                # Create new user
+                user = User.objects.create_user(
+                    username=email,  # Use email as username
+                    email=email,
+                    first_name=first_name,
+                    last_name=request.data.get('last_name', ''),
+                    password=password
+                )
+                
+                # Add user to family
+                family_member = FamilyMember.objects.create(
+                    family=family,
+                    user=user,
+                    role=role,
+                    age=request.data.get('age') if role == 'child' else None,
+                    parental_controls=request.data.get('parental_controls', True) if role == 'child' else False
+                )
+                
+                logger.info(f"New user {user.email} created and added to family {family.name}")
+                
+                return Response({
+                    'message': 'Familie lid succesvol aangemaakt',
+                    'user': {
+                        'id': user.id,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                    },
+                    'member': FamilyMemberSerializer(family_member).data
+                }, status=status.HTTP_201_CREATED)
+                
+        except Exception as e:
+            logger.error(f"Error creating family member: {e}")
+            return Response(
+                {'error': 'Fout bij aanmaken familie lid'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def _send_invitation_email(self, invitation):
         """Send invitation email to the invited user"""
         subject = settings.FAMILY_INVITATION_SUBJECT
