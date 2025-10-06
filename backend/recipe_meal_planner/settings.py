@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -206,14 +207,28 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Ensure media directory exists
-os.makedirs(MEDIA_ROOT, exist_ok=True)
-
 # Production media files with Railway volume
 if 'RAILWAY_ENVIRONMENT' in os.environ:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = '/app/media'  # This will be mounted as Railway volume
     # Don't create directory here - Railway will mount the volume
+    
+    # Add database connection options for Railway
+    DATABASES['default'].update({
+        'OPTIONS': {
+            'connect_timeout': 60,
+            'options': '-c default_transaction_isolation=read_committed'
+        },
+        'CONN_MAX_AGE': 600,
+    })
+else:
+    # Local development - ensure media directory exists
+    try:
+        os.makedirs(MEDIA_ROOT, exist_ok=True)
+    except (OSError, PermissionError):
+        # If we can't create the directory, use a temp directory
+        import tempfile
+        MEDIA_ROOT = tempfile.mkdtemp(prefix='recipe_media_')
 # CORS settings for frontend development
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:9000",

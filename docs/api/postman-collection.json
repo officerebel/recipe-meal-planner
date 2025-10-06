@@ -1,0 +1,608 @@
+{
+  "info": {
+    "name": "Recipe Meal Planner API",
+    "description": "Complete API collection for the Recipe Meal Planner application with family management, recipe CRUD, meal planning, and shopping list generation.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "production_url",
+      "value": "https://proud-mercy-production.up.railway.app/api",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"testpass123\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register", ""]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.token);",
+                  "    console.log('Auth token saved:', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"demo123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", ""]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/user/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "user", ""]
+            }
+          }
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🍳 Recipes",
+      "item": [
+        {
+          "name": "List Recipes (Personal)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recipes/?scope=personal",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", ""],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "personal"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Recipes (Family)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recipes/?scope=family",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", ""],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "family"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Recipes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recipes/?search=pasta&category=Hoofdgerecht",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "pasta"
+                },
+                {
+                  "key": "category",
+                  "value": "Hoofdgerecht"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Recipe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Recipe\",\n  \"description\": \"A delicious test recipe\",\n  \"prep_time\": 15,\n  \"cook_time\": 30,\n  \"servings\": 4,\n  \"categories\": [\"Hoofdgerecht\"],\n  \"tags\": [\"Snel\", \"Makkelijk\"],\n  \"ingredients\": [\n    {\n      \"name\": \"Pasta\",\n      \"amount\": \"500\",\n      \"unit\": \"gram\",\n      \"category\": \"pantry\"\n    },\n    {\n      \"name\": \"Tomaten\",\n      \"amount\": \"400\",\n      \"unit\": \"gram\",\n      \"category\": \"produce\"\n    }\n  ],\n  \"instructions\": [\n    {\n      \"step_number\": 1,\n      \"instruction\": \"Kook de pasta volgens de verpakking\"\n    },\n    {\n      \"step_number\": 2,\n      \"instruction\": \"Voeg de tomaten toe en laat sudderen\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recipes/",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Recipe Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recipes/{{recipe_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", "{{recipe_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Recipe",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Recipe Title\",\n  \"description\": \"Updated description\",\n  \"prep_time\": 20,\n  \"cook_time\": 35\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recipes/{{recipe_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", "{{recipe_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Recipe",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recipes/{{recipe_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", "{{recipe_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Import Recipe from PDF",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/recipes/import_pdf/",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", "import_pdf", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Meal Planning",
+      "item": [
+        {
+          "name": "List Meal Plans (Personal)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/meal-plans/?scope=personal",
+              "host": ["{{base_url}}"],
+              "path": ["meal-plans", ""],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "personal"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Meal Plans (Family)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/meal-plans/?scope=family",
+              "host": ["{{base_url}}"],
+              "path": ["meal-plans", ""],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "family"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Meal Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Week 1 Meal Plan\",\n  \"start_date\": \"2024-01-08\",\n  \"end_date\": \"2024-01-14\",\n  \"servings\": 4,\n  \"daily_meals\": [\n    {\n      \"date\": \"2024-01-08\",\n      \"meal_assignments\": [\n        {\n          \"meal_type\": \"dinner\",\n          \"recipe_id\": \"{{recipe_id}}\",\n          \"servings_planned\": 4\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/meal-plans/",
+              "host": ["{{base_url}}"],
+              "path": ["meal-plans", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Meal Plan Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/meal-plans/{{meal_plan_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["meal-plans", "{{meal_plan_id}}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 Shopping Lists",
+      "item": [
+        {
+          "name": "List Shopping Lists (Personal)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shopping-lists/?scope=personal",
+              "host": ["{{base_url}}"],
+              "path": ["shopping-lists", ""],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "personal"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Shopping Lists (Family)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shopping-lists/?scope=family",
+              "host": ["{{base_url}}"],
+              "path": ["shopping-lists", ""],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "family"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Shopping List",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Weekly Shopping List\",\n  \"meal_plan_ids\": [\"{{meal_plan_id}}\"],\n  \"start_date\": \"2024-01-08\",\n  \"end_date\": \"2024-01-14\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/shopping-lists/",
+              "host": ["{{base_url}}"],
+              "path": ["shopping-lists", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Shopping List Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shopping-lists/{{shopping_list_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["shopping-lists", "{{shopping_list_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Toggle Item Purchased",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchased\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/shopping-list-items/{{item_id}}/toggle_purchased/",
+              "host": ["{{base_url}}"],
+              "path": ["shopping-list-items", "{{item_id}}", "toggle_purchased", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍👩‍👧‍👦 Family Management",
+      "item": [
+        {
+          "name": "List Families",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/families/",
+              "host": ["{{base_url}}"],
+              "path": ["families", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Family",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Family\",\n  \"description\": \"A test family for API testing\",\n  \"default_servings\": 4\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/families/",
+              "host": ["{{base_url}}"],
+              "path": ["families", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Family Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/families/{{family_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["families", "{{family_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "List Family Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/families/{{family_id}}/members/",
+              "host": ["{{base_url}}"],
+              "path": ["families", "{{family_id}}", "members", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Family Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"New\",\n  \"last_name\": \"Member\",\n  \"email\": \"newmember@example.com\",\n  \"username\": \"newmember\",\n  \"password\": \"password123\",\n  \"role\": \"member\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/families/create_member/",
+              "host": ["{{base_url}}"],
+              "path": ["families", "create_member", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Family Member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{member_id}}\",\n  \"role\": \"admin\",\n  \"first_name\": \"Updated\",\n  \"last_name\": \"Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/families/{{family_id}}/update_member/",
+              "host": ["{{base_url}}"],
+              "path": ["families", "{{family_id}}", "update_member", ""]
+            }
+          }
+        },
+        {
+          "name": "Remove Family Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": \"{{member_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/families/{{family_id}}/remove_member/",
+              "host": ["{{base_url}}"],
+              "path": ["families", "{{family_id}}", "remove_member", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Statistics & Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/",
+              "host": ["{{base_url}}"],
+              "path": ["health", ""]
+            }
+          }
+        },
+        {
+          "name": "Recipe Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recipes/statistics/",
+              "host": ["{{base_url}}"],
+              "path": ["recipes", "statistics", ""]
+            }
+          }
+        },
+        {
+          "name": "API Schema (OpenAPI)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/schema/",
+              "host": ["{{base_url}}"],
+              "path": ["schema", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
