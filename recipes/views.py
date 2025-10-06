@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
             OpenApiParameter('category', OpenApiTypes.STR, description='Filter by category'),
             OpenApiParameter('tag', OpenApiTypes.STR, description='Filter by tag'),
             OpenApiParameter('source', OpenApiTypes.STR, description='Filter by source (pdf, manual, database)'),
+            OpenApiParameter('scope', OpenApiTypes.STR, description='Filter by scope (personal, family)', enum=['personal', 'family']),
         ]
     ),
     create=extend_schema(
@@ -84,8 +85,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
     
     def get_queryset(self):
-        """Filter queryset to only show current user's recipes"""
-        queryset = Recipe.objects.filter(user=self.request.user).prefetch_related('ingredients', 'source_metadata')
+        """Filter queryset based on scope (personal vs family)"""
+        scope = self.request.query_params.get('scope', 'personal')
+        
+        if scope == 'family':
+            # Get all recipes from family members
+            from families.models import FamilyMember
+            try:
+                # Get user's family
+                family_member = FamilyMember.objects.get(user=self.request.user)
+                family = family_member.family
+                
+                # Get all family member user IDs
+                family_user_ids = family.members.values_list('user_id', flat=True)
+                
+                # Filter recipes by family members
+                queryset = Recipe.objects.filter(user_id__in=family_user_ids).prefetch_related('ingredients', 'source_metadata')
+            except FamilyMember.DoesNotExist:
+                # User not in any family, show only their recipes
+                queryset = Recipe.objects.filter(user=self.request.user).prefetch_related('ingredients', 'source_metadata')
+        else:
+            # Personal scope - only user's own recipes
+            queryset = Recipe.objects.filter(user=self.request.user).prefetch_related('ingredients', 'source_metadata')
         
         # Filter by category
         category = self.request.query_params.get('category')

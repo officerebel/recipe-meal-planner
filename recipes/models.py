@@ -47,11 +47,11 @@ class Recipe(models.Model):
     title = models.CharField(max_length=200, help_text="Recipe title")
     description = models.TextField(blank=True, help_text="Recipe description")
     
-    # Image
+    # Image with enhanced handling
     image = models.ImageField(
-        upload_to='recipe_images/',
+        upload_to='recipe_images/%Y/%m/',  # Organize by year/month
         null=True, blank=True,
-        help_text="Recipe image"
+        help_text="Recipe image (max 5MB, JPG/PNG/WebP)"
     )
     
     # Timing information

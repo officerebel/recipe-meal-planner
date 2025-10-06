@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from django.conf import settings
 from .models import Recipe, Ingredient, SourceMetadata
+from .image_utils import validate_image_file, get_image_url
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -28,16 +30,32 @@ class SourceMetadataSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    """Serializer for Recipe model"""
+    """Serializer for Recipe model with enhanced image handling"""
     
     ingredients = IngredientSerializer(many=True, required=False)
     source_metadata = SourceMetadataSerializer(read_only=True)
     ingredient_count = serializers.ReadOnlyField()
+    image_url = serializers.SerializerMethodField()
+    
+    def get_image_url(self, obj):
+        """Get full URL for recipe image"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def validate_image(self, image):
+        """Validate uploaded image"""
+        if image:
+            return validate_image_file(image)
+        return image
     
     class Meta:
         model = Recipe
         fields = [
-            'id', 'title', 'description', 'image', 'prep_time', 'cook_time', 
+            'id', 'title', 'description', 'image', 'image_url', 'prep_time', 'cook_time', 
             'total_time', 'servings', 'instructions', 'categories', 
             'tags', 'source', 'created_at', 'updated_at', 
             'ingredients', 'source_metadata', 'ingredient_count',

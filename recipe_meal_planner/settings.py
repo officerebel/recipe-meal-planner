@@ -213,7 +213,7 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 if 'RAILWAY_ENVIRONMENT' in os.environ:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = '/app/media'  # This will be mounted as Railway volume
-    os.makedirs(MEDIA_ROOT, exist_ok=True)
+    # Don't create directory here - Railway will mount the volume
 # CORS settings for frontend development
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:9000",

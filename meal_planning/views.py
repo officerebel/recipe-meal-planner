@@ -31,8 +31,28 @@ class MealPlanViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def get_queryset(self):
-        """Filter queryset to only show current user's meal plans"""
-        return MealPlan.objects.filter(user=self.request.user).prefetch_related('daily_meals__meal_assignments__recipe')
+        """Filter queryset based on scope (personal vs family)"""
+        scope = self.request.query_params.get('scope', 'family')  # Default to family for meal plans
+        
+        if scope == 'family':
+            # Get all meal plans from family members
+            from families.models import FamilyMember
+            try:
+                # Get user's family
+                family_member = FamilyMember.objects.get(user=self.request.user)
+                family = family_member.family
+                
+                # Get all family member user IDs
+                family_user_ids = family.members.values_list('user_id', flat=True)
+                
+                # Filter meal plans by family members
+                return MealPlan.objects.filter(user_id__in=family_user_ids).prefetch_related('daily_meals__meal_assignments__recipe')
+            except FamilyMember.DoesNotExist:
+                # User not in any family, show only their meal plans
+                return MealPlan.objects.filter(user=self.request.user).prefetch_related('daily_meals__meal_assignments__recipe')
+        else:
+            # Personal scope - only user's own meal plans
+            return MealPlan.objects.filter(user=self.request.user).prefetch_related('daily_meals__meal_assignments__recipe')
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -224,8 +244,28 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
     ordering = ['-generated_at']
     
     def get_queryset(self):
-        """Filter queryset to only show current user's shopping lists"""
-        return ShoppingList.objects.filter(user=self.request.user).prefetch_related('items', 'meal_plans')
+        """Filter queryset based on scope (personal vs family)"""
+        scope = self.request.query_params.get('scope', 'personal')
+        
+        if scope == 'family':
+            # Get all shopping lists from family members
+            from families.models import FamilyMember
+            try:
+                # Get user's family
+                family_member = FamilyMember.objects.get(user=self.request.user)
+                family = family_member.family
+                
+                # Get all family member user IDs
+                family_user_ids = family.members.values_list('user_id', flat=True)
+                
+                # Filter shopping lists by family members
+                return ShoppingList.objects.filter(user_id__in=family_user_ids).prefetch_related('items', 'meal_plans')
+            except FamilyMember.DoesNotExist:
+                # User not in any family, show only their shopping lists
+                return ShoppingList.objects.filter(user=self.request.user).prefetch_related('items', 'meal_plans')
+        else:
+            # Personal scope - only user's own shopping lists
+            return ShoppingList.objects.filter(user=self.request.user).prefetch_related('items', 'meal_plans')
     
     def perform_create(self, serializer):
         """Set the user when creating a shopping list"""

@@ -152,17 +152,44 @@ class FamilyViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        serializer = FamilyMemberSerializer(
-            member, 
-            data=request.data, 
-            partial=True
-        )
+        # Update User profile fields if provided
+        user_fields = {}
+        if 'first_name' in request.data:
+            user_fields['first_name'] = request.data['first_name']
+        if 'last_name' in request.data:
+            user_fields['last_name'] = request.data['last_name']
+        if 'email' in request.data:
+            user_fields['email'] = request.data['email']
+        if 'username' in request.data:
+            user_fields['username'] = request.data['username']
         
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+        # Update User model if user fields are provided
+        if user_fields:
+            from django.contrib.auth.models import User
+            user = member.user
+            for field, value in user_fields.items():
+                setattr(user, field, value)
+            user.save()
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Update FamilyMember fields (like role)
+        family_member_data = {k: v for k, v in request.data.items() 
+                             if k not in ['first_name', 'last_name', 'email', 'username']}
+        
+        if family_member_data:
+            serializer = FamilyMemberSerializer(
+                member, 
+                data=family_member_data, 
+                partial=True
+            )
+            
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Return updated member data with user info
+        updated_serializer = FamilyMemberSerializer(member)
+        return Response(updated_serializer.data)
     
     @action(detail=True, methods=['delete'])
     def remove_member(self, request, pk=None):
