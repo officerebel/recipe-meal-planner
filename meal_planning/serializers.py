@@ -145,7 +145,7 @@ class ShoppingListCreateSerializer(serializers.Serializer):
     end_date = serializers.DateField()
     meal_plan_ids = serializers.ListField(
         child=serializers.UUIDField(),
-        allow_empty=False,
+        allow_empty=True,
         help_text="List of meal plan IDs to include in the shopping list"
     )
     
@@ -154,10 +154,11 @@ class ShoppingListCreateSerializer(serializers.Serializer):
         if data['start_date'] > data['end_date']:
             raise serializers.ValidationError("Start date must be before end date.")
         
-        # Validate that all meal plans exist
+        # Validate that all meal plans exist (if any provided)
         meal_plan_ids = data['meal_plan_ids']
-        existing_count = MealPlan.objects.filter(id__in=meal_plan_ids).count()
-        if existing_count != len(meal_plan_ids):
-            raise serializers.ValidationError("One or more meal plans do not exist.")
+        if meal_plan_ids:
+            existing_count = MealPlan.objects.filter(id__in=meal_plan_ids).count()
+            if existing_count != len(meal_plan_ids):
+                raise serializers.ValidationError("One or more meal plans do not exist.")
         
         return data

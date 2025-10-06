@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.http import JsonResponse
+import os
 
 def health_check(request):
     """Simple health check endpoint for Railway"""
@@ -46,4 +47,5 @@ urlpatterns = [
 
 # Serve media files during development and production
 # Note: In production, consider using a CDN or cloud storage for better performance
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG or 'RAILWAY_ENVIRONMENT' in os.environ:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

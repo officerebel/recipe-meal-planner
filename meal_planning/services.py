@@ -279,9 +279,11 @@ class ShoppingListService:
             
             # Create shopping list items
             for ingredient_name, consolidation in ingredient_consolidation.items():
-                # Create a consolidated amount description
+                # Create a consolidated amount description (max 100 chars)
                 if consolidation['notes']:
                     total_amount = '; '.join(consolidation['notes'])
+                    if len(total_amount) > 100:
+                        total_amount = total_amount[:97] + "..."
                 else:
                     total_amount = "As needed"
                 
@@ -289,8 +291,8 @@ class ShoppingListService:
                     shopping_list=shopping_list,
                     ingredient_name=ingredient_name.title(),
                     total_amount=total_amount,
-                    unit=consolidation['unit'],
-                    category=consolidation['category']
+                    unit=consolidation['unit'] or '',
+                    category=consolidation['category'] or 'other'
                 )
                 
                 # Link to source recipes

@@ -374,7 +374,7 @@ class FamilyViewSet(viewsets.ModelViewSet):
                     user=user,
                     role=role,
                     age=request.data.get('age') if role == 'child' else None,
-                    parental_controls_enabled=request.data.get('parental_controls', True) if role == 'child' else False,
+                    parental_controls=request.data.get('parental_controls', True) if role == 'child' else False,
                     can_invite_members=(role == 'admin'),
                     can_create_meal_plans=(role in ['admin', 'member']),
                     can_manage_recipes=(role in ['admin', 'member']),

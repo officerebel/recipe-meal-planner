@@ -258,17 +258,17 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        except Exception as e:
+            logger.error(f"Unexpected error generating shopping list: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'An unexpected error occurred while generating the shopping list'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['post'], url_path='generate')
     def generate(self, request):
         """Generate a new shopping list from meal plans (alternative endpoint)"""
         return self.create(request)
-        except Exception as e:
-            logger.error(f"Unexpected error generating shopping list: {str(e)}")
-            return Response(
-                {'error': 'An unexpected error occurred'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
     
     @action(detail=True, methods=['get'], url_path='by-category')
     def by_category(self, request, pk=None):
