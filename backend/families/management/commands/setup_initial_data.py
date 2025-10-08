@@ -89,8 +89,7 @@ class Command(BaseCommand):
                 'can_create_meal_plans': True,
                 'can_manage_recipes': True,
                 'can_manage_shopping_lists': True,
-                'can_invite_members': True,
-                'can_manage_family_settings': True
+                'can_invite_members': True
             }
         )
         
@@ -106,7 +105,6 @@ class Command(BaseCommand):
                 family_member.can_manage_recipes = True
                 family_member.can_manage_shopping_lists = True
                 family_member.can_invite_members = True
-                family_member.can_manage_family_settings = True
                 family_member.save()
                 self.stdout.write(
                     self.style.SUCCESS(f'✅ Updated {username} to admin role')
