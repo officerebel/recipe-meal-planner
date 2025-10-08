@@ -66,8 +66,7 @@ def auto_setup():
                     'can_create_meal_plans': True,
                     'can_manage_recipes': True,
                     'can_manage_shopping_lists': True,
-                    'can_invite_members': True,
-                    'can_manage_family_settings': True
+                    'can_invite_members': True
                 }
             )
             
