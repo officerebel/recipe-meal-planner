@@ -281,8 +281,11 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
     # Static files with WhiteNoise
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # CORS settings for production - temporarily allow all for Railway health checks
-    CORS_ALLOW_ALL_ORIGINS = True
+    # CORS settings for production
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "https://mealplannerfrontend-production.up.railway.app",
+    ]
     
     # Update ALLOWED_HOSTS for Railway
     ALLOWED_HOSTS = [

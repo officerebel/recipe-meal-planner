@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ['python39']
+
+[phases.install]
+dependsOn = ['setup']
+cmds = ['cd backend && pip install -r requirements.txt']
+
+[phases.build]
+dependsOn = ['install']
+cmds = ['cd backend && python manage.py collectstatic --noinput']
+
+[start]
+cmd = 'cd backend && python manage.py migrate && python auto_setup.py && gunicorn recipe_meal_planner.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2'

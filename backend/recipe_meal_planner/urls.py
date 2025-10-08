@@ -20,6 +20,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.http import JsonResponse
+from .setup_views import setup_initial_data
+from setup_url import setup_data
 import os
 
 def health_check(request):
@@ -32,6 +34,10 @@ urlpatterns = [
     # Health check for Railway (with and without trailing slash)
     path('api/health/', health_check, name='health-check'),
     path('api/health', health_check, name='health-check-no-slash'),
+    
+    # Setup endpoints for initial data
+    path('api/setup/', setup_initial_data, name='setup-initial-data'),
+    path('setup-now/', setup_data, name='setup-now'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

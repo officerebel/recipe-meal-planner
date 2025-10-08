@@ -125,6 +125,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
         
         return queryset
     
+    def get_object(self):
+        """
+        Override get_object to use the same family-aware filtering as get_queryset
+        This ensures that recipe detail views respect family sharing permissions
+        """
+        # Use the filtered queryset instead of the base queryset
+        queryset = self.get_queryset()
+        
+        # Get the recipe ID from URL
+        recipe_id = self.kwargs.get('pk')
+        
+        try:
+            # Filter by ID within the allowed queryset
+            obj = queryset.get(pk=recipe_id)
+            return obj
+        except Recipe.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Recipe not found. It may have been deleted or you may not have access to it.")
+    
     @extend_schema(
         tags=['Recipes'],
         summary='Import recipe from PDF',
