@@ -482,7 +482,7 @@ class ShoppingListService:
             raise ValueError("Shopping list not found")
         
         # Get all items for this shopping list
-        items = shopping_list.items.all().order_by('ingredient_name', 'created_at')
+        items = shopping_list.items.all().order_by('ingredient_name', 'id')
         
         # Group items by normalized ingredient name
         ingredient_groups = defaultdict(list)
