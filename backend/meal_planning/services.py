@@ -465,3 +465,74 @@ class ShoppingListService:
                 logger.error(f"Failed to update shopping list {shopping_list.id}: {str(e)}")
         
         return updated_lists
+    
+    def remove_duplicates(self, shopping_list_id: str) -> int:
+        """
+        Remove duplicate items from a shopping list based on ingredient name
+        
+        Args:
+            shopping_list_id: ID of the shopping list to clean up
+            
+        Returns:
+            Number of duplicate items removed
+        """
+        try:
+            shopping_list = ShoppingList.objects.get(id=shopping_list_id)
+        except ShoppingList.DoesNotExist:
+            raise ValueError("Shopping list not found")
+        
+        # Get all items for this shopping list
+        items = shopping_list.items.all().order_by('ingredient_name', 'created_at')
+        
+        # Group items by normalized ingredient name
+        ingredient_groups = defaultdict(list)
+        for item in items:
+            # Normalize ingredient name for comparison (lowercase, stripped)
+            normalized_name = item.ingredient_name.lower().strip()
+            ingredient_groups[normalized_name].append(item)
+        
+        duplicates_removed = 0
+        
+        with transaction.atomic():
+            for normalized_name, item_list in ingredient_groups.items():
+                if len(item_list) > 1:
+                    # Keep the first item (oldest) and merge information from duplicates
+                    primary_item = item_list[0]
+                    duplicate_items = item_list[1:]
+                    
+                    # Collect amounts and notes from duplicates
+                    all_amounts = [primary_item.total_amount] if primary_item.total_amount else []
+                    all_notes = [primary_item.notes] if primary_item.notes else []
+                    all_recipes = set(primary_item.source_recipes.all())
+                    
+                    for duplicate in duplicate_items:
+                        if duplicate.total_amount and duplicate.total_amount not in all_amounts:
+                            all_amounts.append(duplicate.total_amount)
+                        if duplicate.notes and duplicate.notes not in all_notes:
+                            all_notes.append(duplicate.notes)
+                        all_recipes.update(duplicate.source_recipes.all())
+                    
+                    # Update primary item with consolidated information
+                    if len(all_amounts) > 1:
+                        primary_item.total_amount = '; '.join(all_amounts)
+                        # Truncate if too long
+                        if len(primary_item.total_amount) > 200:
+                            primary_item.total_amount = primary_item.total_amount[:197] + "..."
+                    
+                    if len(all_notes) > 1:
+                        primary_item.notes = '; '.join(all_notes)
+                        # Truncate if too long
+                        if len(primary_item.notes) > 500:
+                            primary_item.notes = primary_item.notes[:497] + "..."
+                    
+                    primary_item.save()
+                    
+                    # Update source recipes
+                    primary_item.source_recipes.set(all_recipes)
+                    
+                    # Delete duplicate items
+                    for duplicate in duplicate_items:
+                        duplicate.delete()
+                        duplicates_removed += 1
+        
+        return duplicates_removed

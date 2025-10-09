@@ -335,6 +335,37 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
                 {'error': 'An unexpected error occurred'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['post'], url_path='remove-duplicates')
+    def remove_duplicates(self, request, pk=None):
+        """
+        Remove duplicate items from the shopping list
+        """
+        shopping_list = self.get_object()
+        
+        try:
+            service = ShoppingListService()
+            duplicates_removed = service.remove_duplicates(str(shopping_list.id))
+            
+            logger.info(f"Removed {duplicates_removed} duplicate items from shopping list {shopping_list.id}")
+            
+            return Response({
+                'message': f'Successfully removed {duplicates_removed} duplicate items',
+                'duplicates_removed': duplicates_removed
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            logger.warning(f"Error removing duplicates from shopping list: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error removing duplicates: {str(e)}")
+            return Response(
+                {'error': 'An unexpected error occurred while removing duplicates'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ShoppingListItemViewSet(viewsets.ModelViewSet):
