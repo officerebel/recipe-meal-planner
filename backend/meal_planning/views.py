@@ -34,20 +34,25 @@ class MealPlanViewSet(viewsets.ModelViewSet):
         """Filter queryset based on scope (personal vs family)"""
         scope = self.request.query_params.get('scope', 'family')  # Default to family for meal plans
         
-        if scope == 'family':
-            # Get all meal plans from family members
-            from families.models import FamilyMember
-            try:
-                # Get user's family
-                family_member = FamilyMember.objects.get(user=self.request.user)
-                family = family_member.family
+        # Check if user is a family member
+        from families.models import FamilyMember
+        user_family_member = None
+        try:
+            user_family_member = FamilyMember.objects.get(user=self.request.user)
+        except FamilyMember.DoesNotExist:
+            pass
+        
+        if scope == 'family' or user_family_member:
+            # Get all meal plans from family members if user is in a family
+            if user_family_member:
+                family = user_family_member.family
                 
                 # Get all family member user IDs
                 family_user_ids = family.members.values_list('user_id', flat=True)
                 
                 # Filter meal plans by family members
                 return MealPlan.objects.filter(user_id__in=family_user_ids).prefetch_related('daily_meals__meal_assignments__recipe')
-            except FamilyMember.DoesNotExist:
+            else:
                 # User not in any family, show only their meal plans
                 return MealPlan.objects.filter(user=self.request.user).prefetch_related('daily_meals__meal_assignments__recipe')
         else:

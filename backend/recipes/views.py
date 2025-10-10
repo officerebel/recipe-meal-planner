@@ -88,20 +88,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Filter queryset based on scope (personal vs family)"""
         scope = self.request.query_params.get('scope', 'personal')
         
-        if scope == 'family':
-            # Get all recipes from family members
-            from families.models import FamilyMember
-            try:
-                # Get user's family
-                family_member = FamilyMember.objects.get(user=self.request.user)
-                family = family_member.family
+        # Check if user is a family member who can view all recipes
+        from families.models import FamilyMember
+        user_family_member = None
+        try:
+            user_family_member = FamilyMember.objects.get(user=self.request.user)
+        except FamilyMember.DoesNotExist:
+            pass
+        
+        if scope == 'family' or (user_family_member and user_family_member.can_view_all_recipes):
+            # Get all recipes from family members if user is in a family
+            if user_family_member:
+                family = user_family_member.family
                 
                 # Get all family member user IDs
                 family_user_ids = family.members.values_list('user_id', flat=True)
                 
                 # Filter recipes by family members
                 queryset = Recipe.objects.filter(user_id__in=family_user_ids).prefetch_related('ingredients', 'source_metadata')
-            except FamilyMember.DoesNotExist:
+            else:
                 # User not in any family, show only their recipes
                 queryset = Recipe.objects.filter(user=self.request.user).prefetch_related('ingredients', 'source_metadata')
         else:
@@ -130,50 +135,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Override get_object to use the same family-aware filtering as get_queryset
         This ensures that recipe detail views respect family sharing permissions
         """
+        # Use the filtered queryset instead of the base queryset
+        queryset = self.get_queryset()
+        
         # Get the recipe ID from URL
         recipe_id = self.kwargs.get('pk')
-        
-        # First try with the current scope (from query params)
-        queryset = self.get_queryset()
         
         try:
             # Filter by ID within the allowed queryset
             obj = queryset.get(pk=recipe_id)
             return obj
         except Recipe.DoesNotExist:
-            # If not found with current scope, try family scope for family members
-            from families.models import FamilyMember
-            try:
-                family_member = FamilyMember.objects.get(user=self.request.user)
-                
-                # If user is a family member and can view all recipes, try family scope
-                if family_member.can_view_all_recipes:
-                    # Temporarily override the scope to family
-                    original_scope = self.request.query_params.get('scope', 'personal')
-                    
-                    # Create a mutable copy of query params
-                    mutable_params = self.request.query_params.copy()
-                    mutable_params['scope'] = 'family'
-                    
-                    # Temporarily replace query params
-                    original_query_params = self.request.query_params
-                    self.request._request.GET = mutable_params
-                    
-                    try:
-                        # Get family queryset
-                        family_queryset = self.get_queryset()
-                        obj = family_queryset.get(pk=recipe_id)
-                        return obj
-                    except Recipe.DoesNotExist:
-                        pass
-                    finally:
-                        # Restore original query params
-                        self.request._request.GET = original_query_params
-                        
-            except FamilyMember.DoesNotExist:
-                pass
-            
-            # If still not found, raise the original error
             from rest_framework.exceptions import NotFound
             raise NotFound("Recipe not found. It may have been deleted or you may not have access to it.")
     
