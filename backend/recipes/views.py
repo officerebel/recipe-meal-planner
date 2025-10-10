@@ -88,27 +88,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Filter queryset based on scope (personal vs family)"""
         scope = self.request.query_params.get('scope', 'personal')
         
-        # Check if user is a family member who can view all recipes
-        from families.models import FamilyMember
-        user_family_member = None
-        try:
-            user_family_member = FamilyMember.objects.get(user=self.request.user)
-        except FamilyMember.DoesNotExist:
-            pass
-        
-        if scope == 'family' or (user_family_member and user_family_member.can_view_all_recipes):
-            # Get all recipes from family members if user is in a family
-            if user_family_member:
-                family = user_family_member.family
+        if scope == 'family':
+            # Get shared recipes from family members
+            from families.models import FamilyMember
+            try:
+                # Get user's family
+                family_member = FamilyMember.objects.get(user=self.request.user)
+                family = family_member.family
                 
                 # Get all family member user IDs
                 family_user_ids = family.members.values_list('user_id', flat=True)
                 
-                # Filter recipes by family members
-                queryset = Recipe.objects.filter(user_id__in=family_user_ids).prefetch_related('ingredients', 'source_metadata')
-            else:
-                # User not in any family, show only their recipes
-                queryset = Recipe.objects.filter(user=self.request.user).prefetch_related('ingredients', 'source_metadata')
+                # Filter recipes by family members that are shared with family
+                queryset = Recipe.objects.filter(
+                    user_id__in=family_user_ids,
+                    is_shared_with_family=True
+                ).prefetch_related('ingredients', 'source_metadata')
+            except FamilyMember.DoesNotExist:
+                # User not in any family, show empty queryset
+                queryset = Recipe.objects.none()
         else:
             # Personal scope - only user's own recipes
             queryset = Recipe.objects.filter(user=self.request.user).prefetch_related('ingredients', 'source_metadata')
@@ -135,19 +133,75 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Override get_object to use the same family-aware filtering as get_queryset
         This ensures that recipe detail views respect family sharing permissions
         """
-        # Use the filtered queryset instead of the base queryset
-        queryset = self.get_queryset()
-        
         # Get the recipe ID from URL
         recipe_id = self.kwargs.get('pk')
+        
+        # First try with the current scope (from query params)
+        queryset = self.get_queryset()
         
         try:
             # Filter by ID within the allowed queryset
             obj = queryset.get(pk=recipe_id)
             return obj
         except Recipe.DoesNotExist:
+            # If not found with current scope, try family scope for family members
+            from families.models import FamilyMember
+            try:
+                family_member = FamilyMember.objects.get(user=self.request.user)
+                
+                # If user is a family member and can view all recipes, try family scope
+                if family_member.can_view_all_recipes:
+                    family = family_member.family
+                    family_user_ids = family.members.values_list('user_id', flat=True)
+                    family_queryset = Recipe.objects.filter(user_id__in=family_user_ids).prefetch_related('ingredients', 'source_metadata')
+                    
+                    try:
+                        obj = family_queryset.get(pk=recipe_id)
+                        return obj
+                    except Recipe.DoesNotExist:
+                        pass
+                        
+            except FamilyMember.DoesNotExist:
+                pass
+            
+            # If still not found, raise the original error
             from rest_framework.exceptions import NotFound
             raise NotFound("Recipe not found. It may have been deleted or you may not have access to it.")
+    
+    @action(detail=True, methods=['post'], url_path='share-with-family')
+    def share_with_family(self, request, pk=None):
+        """Share or unshare recipe with family"""
+        recipe = self.get_object()
+        
+        # Check if user owns this recipe
+        if recipe.user != request.user:
+            return Response(
+                {'error': 'Je kunt alleen je eigen recepten delen'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if user is in a family
+        from families.models import FamilyMember
+        try:
+            family_member = FamilyMember.objects.get(user=request.user)
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Je moet lid zijn van een familie om recepten te delen'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Toggle sharing status
+        share = request.data.get('share', not recipe.is_shared_with_family)
+        recipe.is_shared_with_family = share
+        recipe.save()
+        
+        action = 'gedeeld met' if share else 'niet meer gedeeld met'
+        logger.info(f"Recipe {recipe.id} {action} familie door {request.user.username}")
+        
+        return Response({
+            'message': f'Recept {action} familie',
+            'is_shared_with_family': recipe.is_shared_with_family
+        }, status=status.HTTP_200_OK)
     
     @extend_schema(
         tags=['Recipes'],

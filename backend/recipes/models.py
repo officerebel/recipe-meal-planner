@@ -138,6 +138,12 @@ class Recipe(models.Model):
         help_text="Source of the recipe"
     )
     
+    # Sharing settings
+    is_shared_with_family = models.BooleanField(
+        default=False,
+        help_text="Whether this recipe is shared with family members"
+    )
+    
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
