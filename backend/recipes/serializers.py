@@ -59,7 +59,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             'total_time', 'servings', 'instructions', 'categories', 
             'tags', 'source', 'created_at', 'updated_at', 
             'ingredients', 'source_metadata', 'ingredient_count',
-            'calories', 'protein', 'carbohydrates', 'fat', 'fiber', 'sugar', 'sodium'
+            'calories', 'protein', 'carbohydrates', 'fat', 'fiber', 'sugar', 'sodium',
+            'is_shared_with_family'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
@@ -104,7 +105,7 @@ class RecipeListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'image', 'prep_time', 'cook_time',
             'total_time', 'servings', 'categories', 'tags', 'source',
-            'created_at', 'updated_at', 'ingredient_count'
+            'created_at', 'updated_at', 'ingredient_count', 'is_shared_with_family'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
