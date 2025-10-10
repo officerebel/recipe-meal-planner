@@ -214,8 +214,20 @@ class ShoppingListService:
         if start_date > end_date:
             raise ValueError("Start date must be before or equal to end date")
         
-        # Get meal plans (only user's own meal plans)
-        meal_plans = MealPlan.objects.filter(id__in=meal_plan_ids, user=user)
+        # Get meal plans (user's own meal plans + family meal plans if user is family member)
+        from families.models import FamilyMember
+        
+        # Check if user is a family member
+        try:
+            family_member = FamilyMember.objects.get(user=user)
+            # Get all family member user IDs
+            family_user_ids = family_member.family.members.values_list('user_id', flat=True)
+            # Include meal plans from all family members
+            meal_plans = MealPlan.objects.filter(id__in=meal_plan_ids, user_id__in=family_user_ids)
+        except FamilyMember.DoesNotExist:
+            # User not in any family, only their own meal plans
+            meal_plans = MealPlan.objects.filter(id__in=meal_plan_ids, user=user)
+        
         if meal_plans.count() != len(meal_plan_ids):
             raise ValueError("One or more meal plans not found or not accessible")
         
