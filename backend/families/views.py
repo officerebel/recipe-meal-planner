@@ -143,6 +143,29 @@ class FamilyViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
+        # SECURITY: Prevent users from changing their own role unless they're admin
+        if member.user == request.user and requesting_member.role != 'admin':
+            return Response(
+                {'error': 'Je kunt je eigen rol niet wijzigen'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # SECURITY: Only admins can change roles
+        if 'role' in request.data and requesting_member.role != 'admin':
+            return Response(
+                {'error': 'Alleen beheerders kunnen rollen wijzigen'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get member to update
+        try:
+            member = family.members.get(id=member_id)
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Lid niet gevonden'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         # Prevent removing last admin
         if (member.role == 'admin' and 
             request.data.get('role') != 'admin' and 

@@ -232,6 +232,17 @@ class FamilyMember(models.Model):
             }
         
         return {}
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure proper permissions are set based on role"""
+        # Set default permissions based on role if this is a new instance
+        if not self.pk:
+            defaults = self.get_default_permissions_for_role()
+            for field, value in defaults.items():
+                if hasattr(self, field):
+                    setattr(self, field, value)
+        
+        super().save(*args, **kwargs)
 
 
 class FamilyInvitation(models.Model):
