@@ -29,7 +29,7 @@ class RecipeAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('id', 'title', 'description', 'source')
+            'fields': ('id', 'title', 'description', 'image', 'source')
         }),
         ('Timing & Servings', {
             'fields': ('prep_time', 'cook_time', 'total_time', 'servings')

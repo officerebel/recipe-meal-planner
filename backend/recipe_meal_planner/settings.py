@@ -207,11 +207,54 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Production media files with Railway volume
+# Production media files with AWS S3
 if 'RAILWAY_ENVIRONMENT' in os.environ:
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = '/app/media'  # This will be mounted as Railway volume
-    # Don't create directory here - Railway will mount the volume
+    # Use AWS S3 for media storage in production
+    if all(key in os.environ for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_STORAGE_BUCKET_NAME']):
+        # AWS S3 Configuration
+        AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+        AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+        AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'eu-west-1')
+        AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+        
+        # S3 settings
+        AWS_DEFAULT_ACL = 'public-read'
+        AWS_S3_OBJECT_PARAMETERS = {
+            'CacheControl': 'max-age=86400',
+        }
+        AWS_LOCATION = 'media'
+        
+        # Use S3 for media files
+        DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+        
+        print(f"Using AWS S3 for media storage: {MEDIA_URL}")
+    else:
+        # Fallback to local storage with Railway volume
+        MEDIA_URL = '/media/'
+        
+        # Use Railway volume mount path from environment variable
+        MEDIA_ROOT = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '/app/media')
+        
+        # Ensure media directory exists and is writable
+        try:
+            # Don't try to create the directory if it's the Railway volume mount point
+            if MEDIA_ROOT != '/app/media':
+                os.makedirs(MEDIA_ROOT, exist_ok=True)
+            
+            # Test write permissions
+            test_file = os.path.join(MEDIA_ROOT, '.test_write')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            print(f"Media directory ready: {MEDIA_ROOT}")
+        except (OSError, PermissionError) as e:
+            print(f"Warning: Media directory issue: {e}")
+            # Fallback to a writable directory in /tmp
+            MEDIA_ROOT = '/tmp/media'
+            os.makedirs(MEDIA_ROOT, exist_ok=True)
+            print(f"Using fallback media directory: {MEDIA_ROOT}")
     
     # Add database connection options for Railway
     DATABASES['default'].update({

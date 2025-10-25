@@ -111,16 +111,21 @@ class RecipeListSerializer(serializers.ModelSerializer):
 
 
 class RecipeImportSerializer(serializers.Serializer):
-    """Serializer for PDF recipe import"""
+    """Serializer for PDF and image recipe import"""
     
     file = serializers.FileField(
-        help_text="PDF file containing the recipe"
+        help_text="PDF or image file containing the recipe"
     )
     
     def validate_file(self, value):
         """Validate the uploaded file"""
-        if not value.name.lower().endswith('.pdf'):
-            raise serializers.ValidationError("Only PDF files are allowed.")
+        allowed_extensions = ['.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.webp']
+        file_extension = '.' + value.name.lower().split('.')[-1] if '.' in value.name else ''
+        
+        if file_extension not in allowed_extensions:
+            raise serializers.ValidationError(
+                f"Only PDF and image files are allowed. Supported formats: {', '.join(allowed_extensions)}"
+            )
         
         # Check file size (10MB limit)
         if value.size > 10 * 1024 * 1024:

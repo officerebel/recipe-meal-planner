@@ -7,6 +7,7 @@ import uuid
 class RecipeSource(models.TextChoices):
     """Source of the recipe"""
     PDF = 'pdf', 'PDF Import'
+    IMAGE = 'image', 'Image Import'
     MANUAL = 'manual', 'Manual Entry'
     DATABASE = 'database', 'Database Import'
 

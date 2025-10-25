@@ -205,8 +205,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     
     @extend_schema(
         tags=['Recipes'],
-        summary='Import recipe from PDF',
-        description='Import a recipe by uploading a PDF file. The system will extract recipe information automatically.',
+        summary='Import recipe from PDF or image',
+        description='Import a recipe by uploading a PDF or image file. The system will extract recipe information automatically using OCR for images.',
         request={
             'multipart/form-data': {
                 'type': 'object',
@@ -214,7 +214,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     'file': {
                         'type': 'string',
                         'format': 'binary',
-                        'description': 'PDF file to import (max 10MB)'
+                        'description': 'PDF or image file to import (max 10MB). Supported formats: PDF, PNG, JPG, JPEG, TIFF, BMP, WebP'
                     }
                 }
             }
@@ -230,49 +230,96 @@ class RecipeViewSet(viewsets.ModelViewSet):
         parser_classes=[MultiPartParser, FormParser],
         url_path='import'
     )
-    def import_pdf(self, request):
+    def import_recipe(self, request):
         """
-        Import a recipe from a PDF file
+        Import a recipe from a PDF or image file
         """
+        logger.info(f"=== IMPORT_RECIPE ENDPOINT CALLED ===")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request data keys: {list(request.data.keys())}")
+        
         serializer = RecipeImportSerializer(data=request.data)
         if not serializer.is_valid():
+            logger.error(f"Serializer validation failed: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        pdf_file = serializer.validated_data['file']
+        uploaded_file = serializer.validated_data['file']
+        file_extension = uploaded_file.name.lower().split('.')[-1] if '.' in uploaded_file.name else ''
         
         try:
-            logger.info(f"Starting PDF import for file: {pdf_file.name}")
+            logger.info(f"Starting recipe import for file: {uploaded_file.name} (type: {file_extension})")
+            logger.info(f"File size: {uploaded_file.size}, content_type: {uploaded_file.content_type}")
             
-            # Validate the PDF file first
-            validation_service = PDFValidationService()
-            validation_result = validation_service.validate_file(pdf_file)
+            # Use the enhanced import service
+            from .text_extraction_service import EnhancedRecipeImportService
+            import_service = EnhancedRecipeImportService()
             
-            if not validation_result['is_valid']:
-                logger.warning(f"PDF validation failed for {pdf_file.name}: {validation_result['errors']}")
+            # Extract and parse recipe data
+            import_result = import_service.import_recipe_from_file(uploaded_file)
+            
+            if not import_result['success']:
+                logger.warning(f"Recipe import failed for {uploaded_file.name}: {import_result['error']}")
                 return Response(
                     {
-                        'error': 'File validation failed',
-                        'details': validation_result['errors']
+                        'error': 'Import failed',
+                        'details': import_result['error'],
+                        'stage': import_result.get('stage', 'unknown')
                     },
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Log warnings if any
-            if validation_result['warnings']:
-                logger.warning(f"PDF validation warnings for {pdf_file.name}: {validation_result['warnings']}")
+            # Create recipe from parsed data
+            recipe_data = import_result['recipe_data']
             
-            # Import the recipe
-            import_service = RecipeImportService()
-            recipe = import_service.import_from_pdf(pdf_file, request.user)
+            # Determine source type
+            source = RecipeSource.IMAGE if file_extension in ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp'] else RecipeSource.PDF
             
-            logger.info(f"Successfully imported recipe {recipe.id} from {pdf_file.name}")
+            # Create the recipe
+            recipe = Recipe.objects.create(
+                user=request.user,
+                title=recipe_data.get('title', 'Imported Recipe'),
+                description=recipe_data.get('description', ''),
+                prep_time=recipe_data.get('prep_time'),
+                cook_time=recipe_data.get('cook_time'),
+                servings=recipe_data.get('servings'),
+                instructions=recipe_data.get('instructions', []),
+                source=source
+            )
+            
+            # Create ingredients
+            for i, ingredient_text in enumerate(recipe_data.get('ingredients', [])):
+                Ingredient.objects.create(
+                    recipe=recipe,
+                    name=ingredient_text,
+                    order=i + 1
+                )
+            
+            # Create source metadata
+            SourceMetadata.objects.create(
+                recipe=recipe,
+                original_filename=uploaded_file.name,
+                file_size=uploaded_file.size,
+                import_success=True,
+                extraction_method=import_result.get('extraction_method', 'unknown'),
+                raw_text_preview=import_result.get('raw_text_preview', '')[:1000]  # Limit to 1000 chars
+            )
+            
+            logger.info(f"Successfully imported recipe {recipe.id} from {uploaded_file.name} using {import_result.get('extraction_method', 'unknown')}")
             
             # Return the created recipe
             recipe_serializer = RecipeSerializer(recipe)
-            return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
+            return Response({
+                'recipe': recipe_serializer.data,
+                'import_metadata': {
+                    'extraction_method': import_result.get('extraction_method'),
+                    'source_type': source,
+                    'ingredients_found': len(recipe_data.get('ingredients', [])),
+                    'instructions_found': len(recipe_data.get('instructions', []))
+                }
+            }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            logger.error(f"Error importing PDF {pdf_file.name}: {str(e)}")
+            logger.error(f"Error importing recipe from {uploaded_file.name}: {str(e)}")
             return Response(
                 {
                     'error': 'Import failed',

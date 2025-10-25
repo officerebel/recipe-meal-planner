@@ -22,6 +22,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from django.http import JsonResponse
 from .setup_views import setup_initial_data
 from setup_url import setup_data
+from recipes.views_media_test import media_info, test_media_upload
+from .media_views import serve_media
 import os
 
 def health_check(request):
@@ -39,6 +41,10 @@ urlpatterns = [
     path('api/setup/', setup_initial_data, name='setup-initial-data'),
     path('setup-now/', setup_data, name='setup-now'),
     
+    # Media test endpoints (public for testing)
+    path('api/media-info/', media_info, name='media-info'),
+    path('api/test-media-upload/', test_media_upload, name='test-media-upload'),
+    
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
@@ -53,5 +59,11 @@ urlpatterns = [
 
 # Serve media files during development and production
 # Note: In production, consider using a CDN or cloud storage for better performance
-if settings.DEBUG or 'RAILWAY_ENVIRONMENT' in os.environ:
+if settings.DEBUG:
+    # Use Django's static file serving in development
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+elif 'RAILWAY_ENVIRONMENT' in os.environ:
+    # Use custom media serving view in production
+    urlpatterns += [
+        path('media/<path:path>', serve_media, name='serve-media'),
+    ]
