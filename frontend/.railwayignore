@@ -1,0 +1,14 @@
+# Ignore everything except frontend files
+../backend/
+../docs/
+../recipe_planner_env/
+../scripts/
+../static/
+../tests/
+../.gitignore
+../DEPLOYMENT.md
+../PROJECT_STRUCTURE.md
+../README.md
+../nixpacks.toml
+../setup_railway.sh
+../test.pdf
