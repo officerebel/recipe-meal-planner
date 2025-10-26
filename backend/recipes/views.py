@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from drf_spectacular.types import OpenApiTypes
 import logging
 
-from .models import Recipe, RecipeSource
+from .models import Recipe, RecipeSource, Ingredient, SourceMetadata
 from .serializers import (
     RecipeSerializer, RecipeListSerializer, RecipeImportSerializer,
     ImportValidationResultSerializer, RecipeStatisticsSerializer
@@ -291,7 +291,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     'categories': [],
                     'tags': [],
                     'source_type': source,
-                    'extraction_method': import_result.get('extraction_method'),
+                    'extraction_method': 'OCR' if source == RecipeSource.IMAGE else 'PDF',
                     'raw_text_preview': import_result.get('raw_text_preview', '')[:500]
                 }, status=status.HTTP_200_OK)
             
@@ -321,18 +321,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 original_filename=uploaded_file.name,
                 file_size=uploaded_file.size,
                 import_success=True,
-                extraction_method=import_result.get('extraction_method', 'unknown'),
-                raw_text_preview=import_result.get('raw_text_preview', '')[:1000]  # Limit to 1000 chars
+                raw_text=import_result.get('raw_text_preview', '')[:1000]  # Limit to 1000 chars
             )
             
-            logger.info(f"Successfully imported recipe {recipe.id} from {uploaded_file.name} using {import_result.get('extraction_method', 'unknown')}")
+            logger.info(f"Successfully imported recipe {recipe.id} from {uploaded_file.name}")
             
             # Return the created recipe
             recipe_serializer = RecipeSerializer(recipe)
             return Response({
                 'recipe': recipe_serializer.data,
                 'import_metadata': {
-                    'extraction_method': import_result.get('extraction_method'),
+                    'extraction_method': 'OCR' if source == RecipeSource.IMAGE else 'PDF',
                     'source_type': source,
                     'ingredients_found': len(recipe_data.get('ingredients', [])),
                     'instructions_found': len(recipe_data.get('instructions', []))
