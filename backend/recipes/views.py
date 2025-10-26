@@ -246,8 +246,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         uploaded_file = serializer.validated_data['file']
         file_extension = uploaded_file.name.lower().split('.')[-1] if '.' in uploaded_file.name else ''
         
+        # Check if this is a preview request
+        is_preview = request.data.get('preview', '').lower() == 'true'
+        
         try:
-            logger.info(f"Starting recipe import for file: {uploaded_file.name} (type: {file_extension})")
+            logger.info(f"Starting recipe {'preview' if is_preview else 'import'} for file: {uploaded_file.name} (type: {file_extension})")
             logger.info(f"File size: {uploaded_file.size}, content_type: {uploaded_file.content_type}")
             
             # Use the enhanced import service
@@ -273,6 +276,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
             
             # Determine source type
             source = RecipeSource.IMAGE if file_extension in ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp'] else RecipeSource.PDF
+            
+            # If this is a preview request, return the parsed data without saving
+            if is_preview:
+                logger.info(f"Returning preview data for {uploaded_file.name}")
+                return Response({
+                    'title': recipe_data.get('title', 'Imported Recipe'),
+                    'description': recipe_data.get('description', ''),
+                    'prep_time': recipe_data.get('prep_time'),
+                    'cook_time': recipe_data.get('cook_time'),
+                    'servings': recipe_data.get('servings'),
+                    'instructions': recipe_data.get('instructions', []),
+                    'ingredients': [{'name': ing, 'amount': '', 'notes': ''} for ing in recipe_data.get('ingredients', [])],
+                    'categories': [],
+                    'tags': [],
+                    'source_type': source,
+                    'extraction_method': import_result.get('extraction_method'),
+                    'raw_text_preview': import_result.get('raw_text_preview', '')[:500]
+                }, status=status.HTTP_200_OK)
             
             # Create the recipe
             recipe = Recipe.objects.create(

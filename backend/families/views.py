@@ -214,6 +214,74 @@ class FamilyViewSet(viewsets.ModelViewSet):
         updated_serializer = FamilyMemberSerializer(member)
         return Response(updated_serializer.data)
     
+    @action(detail=True, methods=['patch'], url_path='reset-member-password')
+    def reset_member_password(self, request, pk=None):
+        """Reset password for a family member"""
+        family = self.get_object()
+        member_id = request.data.get('member_id')
+        new_password = request.data.get('new_password')
+        
+        if not member_id:
+            return Response(
+                {'error': 'member_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if not new_password:
+            return Response(
+                {'error': 'new_password is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if len(new_password) < 6:
+            return Response(
+                {'error': 'Password must be at least 6 characters'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user is admin
+        try:
+            requesting_member = family.members.get(user=request.user)
+            if requesting_member.role != 'admin':
+                return Response(
+                    {'error': 'Only admins can reset member passwords'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'You are not a member of this family'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get member whose password to reset
+        try:
+            member = family.members.get(id=member_id)
+        except FamilyMember.DoesNotExist:
+            return Response(
+                {'error': 'Member not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Reset the password
+        try:
+            user = member.user
+            user.set_password(new_password)
+            user.save()
+            
+            logger.info(f"Password reset for user {user.username} by admin {request.user.username}")
+            
+            return Response({
+                'message': f'Password reset successfully for {user.first_name} {user.last_name}',
+                'member_id': member.id
+            })
+            
+        except Exception as e:
+            logger.error(f"Error resetting password for member {member_id}: {str(e)}")
+            return Response(
+                {'error': 'Failed to reset password'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
     @action(detail=True, methods=['delete'])
     def remove_member(self, request, pk=None):
         """Remove family member"""

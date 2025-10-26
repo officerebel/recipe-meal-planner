@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { recipeService } from 'src/services/recipeService'
 import { mobileApi } from 'src/services/mobileApiService'
+import { api } from 'boot/axios'
 
 export const useRecipeStore = defineStore('recipes', {
   state: () => ({
@@ -308,35 +309,40 @@ export const useRecipeStore = defineStore('recipes', {
     /**
      * Preview recipe from file (PDF or image)
      */
-    async previewFromFile(file) {
+    async previewFromFile(file, options = {}) {
       this.loading = true
       this.error = null
 
       try {
-        // For now, return a mock preview since preview endpoint isn't implemented yet
-        // In a real implementation, you would call a preview API endpoint
-        const fileType = file.name.toLowerCase().split('.').pop()
-        const isImage = ['png', 'jpg', 'jpeg', 'tiff', 'bmp', 'webp'].includes(fileType)
+        // Create FormData for file upload
+        const formData = new FormData()
+        formData.append('file', file)
 
-        return {
-          title: `Preview from ${isImage ? 'Image' : 'PDF'}: ${file.name}`,
-          description: `This is a preview of the recipe extracted from ${file.name}`,
-          ingredients: [
-            { name: 'Ingredient 1 (extracted)', amount: '1 cup', notes: '' },
-            { name: 'Ingredient 2 (extracted)', amount: '2 tbsp', notes: '' }
-          ],
-          instructions: [
-            'Step 1: This is a preview step',
-            'Step 2: Actual extraction will happen on import'
-          ],
-          prep_time: 15,
-          cook_time: 30,
-          servings: 4,
-          categories: [],
-          tags: []
+        // Add parsing options if provided
+        if (options.parsingMode) {
+          formData.append('parsing_mode', options.parsingMode)
         }
+        if (options.expectedLanguage) {
+          formData.append('expected_language', options.expectedLanguage)
+        }
+
+        // Add preview flag to indicate this is a preview request
+        formData.append('preview', 'true')
+
+        console.log('Calling preview API for file:', file.name)
+
+        // Call the import API with preview flag
+        const response = await api.post('/recipes/import/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        console.log('Preview API response:', response.data)
+        return response.data
+
       } catch (error) {
-        this.error = error.message || 'Failed to preview recipe'
+        this.error = error.response?.data?.detail || error.message || 'Failed to preview recipe'
         console.error('Error previewing recipe:', error)
         throw error
       } finally {

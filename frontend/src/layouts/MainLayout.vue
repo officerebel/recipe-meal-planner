@@ -161,6 +161,12 @@ const linksList = computed(() => {
       icon: 'category',
       route: 'categories',
     },
+    {
+      title: 'Settings',
+      caption: 'Account and family settings',
+      icon: 'settings',
+      route: 'settings',
+    },
   ]
 
   return baseLinks

@@ -197,6 +197,16 @@
                           <q-btn
                             flat
                             round
+                            icon="lock_reset"
+                            size="sm"
+                            color="orange"
+                            @click="resetMemberPassword(member)"
+                          >
+                            <q-tooltip>Reset password</q-tooltip>
+                          </q-btn>
+                          <q-btn
+                            flat
+                            round
                             icon="delete"
                             size="sm"
                             color="negative"
@@ -522,6 +532,62 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Reset Password Dialog -->
+    <q-dialog v-model="showResetPasswordDialog" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Reset Password</div>
+          <div class="text-subtitle2 q-mt-sm">
+            Reset password for {{ editingMember?.user?.first_name }} {{ editingMember?.user?.last_name }}
+          </div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-form @submit.prevent="confirmPasswordReset" class="q-gutter-md">
+            <q-input
+              v-model="newPasswordForMember"
+              label="New Password"
+              type="password"
+              outlined
+              :rules="[
+                val => !!val || 'Password is required',
+                val => val.length >= 6 || 'Password must be at least 6 characters'
+              ]"
+            >
+              <template v-slot:prepend>
+                <q-icon name="lock" />
+              </template>
+            </q-input>
+
+            <q-input
+              v-model="confirmPasswordForMember"
+              label="Confirm New Password"
+              type="password"
+              outlined
+              :rules="[
+                val => !!val || 'Please confirm the password',
+                val => val === newPasswordForMember || 'Passwords do not match'
+              ]"
+            >
+              <template v-slot:prepend>
+                <q-icon name="lock_outline" />
+              </template>
+            </q-input>
+          </q-form>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" @click="cancelPasswordReset" />
+          <q-btn
+            color="primary"
+            label="Reset Password"
+            @click="confirmPasswordReset"
+            :loading="loading"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -573,7 +639,10 @@ const showCreateFamilyDialog = ref(false)
 const showAddMemberDialog = ref(false)
 const showEditRoleDialog = ref(false)
 const showEditProfileDialog = ref(false)
+const showResetPasswordDialog = ref(false)
 const editingMember = ref(null)
+const newPasswordForMember = ref('')
+const confirmPasswordForMember = ref('')
 const editProfileForm = ref({
   firstName: '',
   lastName: '',
@@ -777,6 +846,13 @@ const editMemberProfile = (member) => {
   showEditProfileDialog.value = true
 }
 
+const resetMemberPassword = (member) => {
+  editingMember.value = member
+  newPasswordForMember.value = ''
+  confirmPasswordForMember.value = ''
+  showResetPasswordDialog.value = true
+}
+
 const cancelEditProfile = () => {
   showEditProfileDialog.value = false
   editingMember.value = null
@@ -785,6 +861,62 @@ const cancelEditProfile = () => {
     lastName: '',
     email: '',
     username: ''
+  }
+}
+
+const cancelPasswordReset = () => {
+  showResetPasswordDialog.value = false
+  editingMember.value = null
+  newPasswordForMember.value = ''
+  confirmPasswordForMember.value = ''
+}
+
+const confirmPasswordReset = async () => {
+  if (!editingMember.value) return
+
+  if (newPasswordForMember.value !== confirmPasswordForMember.value) {
+    $q.notify({
+      type: 'negative',
+      message: 'Passwords do not match'
+    })
+    return
+  }
+
+  if (newPasswordForMember.value.length < 6) {
+    $q.notify({
+      type: 'negative',
+      message: 'Password must be at least 6 characters'
+    })
+    return
+  }
+
+  loading.value = true
+  try {
+    // Call API to reset member password
+    // First get the family ID from the member
+    const familyId = editingMember.value.family
+    await api.patch(`/families/${familyId}/reset-member-password/`, {
+      member_id: editingMember.value.id,
+      new_password: newPasswordForMember.value
+    })
+
+    $q.notify({
+      type: 'positive',
+      message: `Password reset successfully for ${editingMember.value.user.first_name}`
+    })
+
+    showResetPasswordDialog.value = false
+    editingMember.value = null
+    newPasswordForMember.value = ''
+    confirmPasswordForMember.value = ''
+  } catch (error) {
+    console.error('Error resetting password:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to reset password. Please try again.'
+    })
+  } finally {
+    loading.value = false
   }
 }
 
