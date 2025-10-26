@@ -287,9 +287,11 @@ export const useRecipeStore = defineStore('recipes', {
       this.error = null
 
       try {
-        const recipe = await recipeService.importFromFile(file, onProgress)
+        const importResult = await recipeService.importFromFile(file, onProgress)
+        // Handle the backend response structure: { recipe: {...}, import_metadata: {...} }
+        const recipe = importResult.recipe || importResult
         this.recipes.unshift(recipe)
-        return recipe
+        return importResult  // Return the full result so the frontend can access both recipe and metadata
       } catch (error) {
         this.error = error.message || 'Failed to import recipe'
         console.error('Error importing recipe:', error)

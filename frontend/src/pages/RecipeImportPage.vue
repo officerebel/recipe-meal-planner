@@ -303,17 +303,21 @@ const importRecipe = async () => {
     console.log(`Importing recipe from ${isImage ? 'image' : 'PDF'}:`, selectedFile.value.name)
 
     // Use the new enhanced import function
-    const recipe = await recipeStore.importFromFile(selectedFile.value)
+    const importResult = await recipeStore.importFromFile(selectedFile.value)
 
+    // Extract the recipe from the import result
+    const recipe = importResult.recipe || importResult
     importedRecipe.value = recipe
     previewData.value = null
 
     showMessage('Recipe imported successfully!', 'positive')
 
     // Navigate to the new recipe after a short delay
-    setTimeout(() => {
-      router.push(`/recipes/${recipe.id}`)
-    }, 1500)
+    if (recipe && recipe.id) {
+      setTimeout(() => {
+        router.push(`/recipes/${recipe.id}`)
+      }, 1500)
+    }
 
   } catch (error) {
     console.error('Import error:', error)
@@ -450,9 +454,11 @@ const savePreviewedRecipe = async () => {
     showMessage('Recipe saved successfully!', 'positive')
 
     // Navigate to the new recipe after a short delay
-    setTimeout(() => {
-      router.push(`/recipes/${recipe.id}`)
-    }, 1500)
+    if (recipe && recipe.id) {
+      setTimeout(() => {
+        router.push(`/recipes/${recipe.id}`)
+      }, 1500)
+    }
 
   } catch (error) {
     console.error('Save error:', error)

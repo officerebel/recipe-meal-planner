@@ -315,65 +315,68 @@ class RecipeTextParser:
     def _extract_ingredients(self, text: str) -> List[str]:
         """Extract ingredients list from text"""
         ingredients = []
-        lines = text.split('\n')
         
-        # Look for ingredient patterns
-        ingredient_patterns = [
-            r'^\s*[-•*]\s*(.+)',  # Bullet points
-            r'^\s*\d+\s*(cups?|tbsp|tsp|ml|gram|kg|oz|lb)\s*(.+)',  # Measurements
-            r'^\s*\d+\s*(.+)',  # Numbered items
-        ]
+        # First try to find ingredients section
+        ingredients_match = re.search(r'INGREDIENTS?:?\s*(.*?)(?:INSTRUCTIONS?|METHOD|DIRECTIONS?|$)', text, re.IGNORECASE | re.DOTALL)
         
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-                
+        if ingredients_match:
+            ingredients_text = ingredients_match.group(1)
+            
+            # Split by common patterns and clean up
+            # Look for measurement patterns in continuous text
+            ingredient_patterns = [
+                r'(\d+(?:\s*\d+/\d+)?\s*(?:cups?|tbsp|tsp|ml|gram|kg|oz|lb|g)\s+[^.]+?)(?=\d+(?:\s*\d+/\d+)?\s*(?:cups?|tbsp|tsp|ml|gram|kg|oz|lb|g)|$)',
+                r'(\d+\s+[^.]+?)(?=\d+\s+|$)',  # Simple number + ingredient
+                r'([•-]\s*[^•-]+?)(?=[•-]|$)',  # Bullet points
+            ]
+            
             for pattern in ingredient_patterns:
-                match = re.search(pattern, line, re.IGNORECASE)
-                if match:
-                    ingredient = match.group(1) if len(match.groups()) == 1 else match.group(2)
-                    if ingredient and len(ingredient) > 2:
-                        ingredients.append(ingredient.strip())
-                    break
+                matches = re.findall(pattern, ingredients_text, re.IGNORECASE)
+                for match in matches:
+                    ingredient = match.strip()
+                    if len(ingredient) > 3 and ingredient not in ingredients:
+                        ingredients.append(ingredient)
+        
+        # Fallback: look for lines with measurements
+        if not ingredients:
+            lines = text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if re.search(r'\d+\s*(cups?|tbsp|tsp|ml|gram|kg|oz|lb)', line, re.IGNORECASE):
+                    if len(line) > 3:
+                        ingredients.append(line)
         
         return ingredients[:20]  # Limit to 20 ingredients
     
     def _extract_instructions(self, text: str) -> List[str]:
         """Extract cooking instructions from text"""
         instructions = []
-        lines = text.split('\n')
         
-        # Look for instruction patterns
-        instruction_patterns = [
-            r'^\s*\d+\.\s*(.+)',  # Numbered steps
-            r'^\s*(step\s*\d+:?\s*)?(.+)',  # Step indicators
-        ]
+        # First try to find instructions section
+        instructions_match = re.search(r'(?:INSTRUCTIONS?|METHOD|DIRECTIONS?):?\s*(.*?)$', text, re.IGNORECASE | re.DOTALL)
         
-        in_instructions_section = False
-        
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
+        if instructions_match:
+            instructions_text = instructions_match.group(1)
             
-            # Check if we're entering instructions section
-            if re.search(r'(instructions?|method|directions?|steps?)', line.lower()):
-                in_instructions_section = True
-                continue
+            # Look for numbered steps in continuous text
+            step_pattern = r'(\d+\.\s*[^.]+?\.)'
+            matches = re.findall(step_pattern, instructions_text)
             
-            if in_instructions_section or len(instructions) > 0:
-                for pattern in instruction_patterns:
-                    match = re.search(pattern, line, re.IGNORECASE)
-                    if match:
-                        instruction = match.group(1) if len(match.groups()) == 1 else match.group(2)
-                        if instruction and len(instruction) > 10:
-                            instructions.append(instruction.strip())
-                        break
-                else:
-                    # If line is long enough and looks like an instruction
-                    if len(line) > 20 and not re.search(r'^\d+\s*(cups?|tbsp|tsp)', line.lower()):
-                        instructions.append(line)
+            for match in matches:
+                instruction = match.strip()
+                if len(instruction) > 10:
+                    # Clean up the instruction
+                    instruction = re.sub(r'^\d+\.\s*', '', instruction)  # Remove number
+                    instructions.append(instruction.strip())
+        
+        # Fallback: look for numbered lines
+        if not instructions:
+            lines = text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if re.match(r'^\d+\.\s*', line) and len(line) > 10:
+                    instruction = re.sub(r'^\d+\.\s*', '', line)
+                    instructions.append(instruction.strip())
         
         return instructions[:15]  # Limit to 15 steps
     
