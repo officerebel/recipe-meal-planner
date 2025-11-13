@@ -311,8 +311,15 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
     if 'DATABASE_URL' in os.environ:
         import dj_database_url
         DATABASES = {
-            'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+            'default': dj_database_url.parse(
+                os.environ.get('DATABASE_URL'),
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
         }
+        print(f"✅ Using PostgreSQL database in production")
+    else:
+        print("⚠️  Warning: No DATABASE_URL found in production environment")
     
     # Security settings for production
     SECURE_SSL_REDIRECT = True
