@@ -225,3 +225,64 @@ def change_password(request):
         return Response({
             'error': f'Password change failed: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=['Authentication'],
+    summary='Reset password',
+    description='Reset password without requiring current password (admin function)',
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'new_password': {'type': 'string', 'description': 'New password'},
+            },
+            'required': ['new_password']
+        }
+    },
+    responses={
+        200: {'description': 'Password reset successfully'},
+        400: {'description': 'Validation errors'},
+        401: {'description': 'Authentication required'}
+    }
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_password(request):
+    """Reset user password (admin function)"""
+    try:
+        new_password = request.data.get('new_password')
+        
+        if not new_password:
+            return Response({
+                'error': 'new_password is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate new password
+        if len(new_password) < 8:
+            return Response({
+                'error': 'New password must be at least 8 characters long'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Reset password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # Invalidate all existing tokens for this user
+        Token.objects.filter(user=request.user).delete()
+        
+        # Create new token
+        new_token = Token.objects.create(user=request.user)
+        
+        logger.info(f"Password reset for user: {request.user.email}")
+        
+        return Response({
+            'message': 'Password reset successfully',
+            'token': new_token.key  # Return new token so user doesn't get logged out
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error during password reset: {str(e)}")
+        return Response({
+            'error': f'Password reset failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

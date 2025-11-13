@@ -45,7 +45,7 @@ class Recipe(models.Model):
         related_name='recipes',
         help_text="Owner of this recipe"
     )
-    title = models.CharField(max_length=200, help_text="Recipe title")
+    title = models.CharField(max_length=1000, help_text="Recipe title")
     description = models.TextField(blank=True, help_text="Recipe description")
     
     # Image with enhanced handling
@@ -179,19 +179,19 @@ class Ingredient(models.Model):
         related_name='ingredients'
     )
     
-    name = models.CharField(max_length=200, help_text="Ingredient name")
+    name = models.CharField(max_length=1000, help_text="Ingredient name")
     amount = models.CharField(
-        max_length=50, 
+        max_length=500, 
         blank=True,
         help_text="Amount (e.g., '2 cups', '1 tbsp')"
     )
     unit = models.CharField(
-        max_length=50, 
+        max_length=100, 
         blank=True,
         help_text="Unit of measurement"
     )
     notes = models.CharField(
-        max_length=200, 
+        max_length=1000, 
         blank=True,
         help_text="Additional notes (e.g., 'chopped', 'optional')"
     )
