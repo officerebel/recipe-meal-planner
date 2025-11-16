@@ -895,7 +895,7 @@ const confirmPasswordReset = async () => {
     // Call API to reset member password
     // First get the family ID from the member
     const familyId = editingMember.value.family
-    await api.patch(`/families/${familyId}/reset-member-password/`, {
+    await api.patch(`families/${familyId}/reset-member-password/`, {
       member_id: editingMember.value.id,
       new_password: newPasswordForMember.value
     })

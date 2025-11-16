@@ -280,14 +280,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
             # If this is a preview request, return the parsed data without saving
             if is_preview:
                 logger.info(f"Returning preview data for {uploaded_file.name}")
+                
+                # Helper function for safe truncation
+                def safe_truncate(text, max_length):
+                    """Safely truncate text to max_length"""
+                    if not text:
+                        return text
+                    return text[:max_length] if len(text) > max_length else text
+                
                 return Response({
-                    'title': recipe_data.get('title', 'Imported Recipe'),
-                    'description': recipe_data.get('description', ''),
+                    'title': safe_truncate(recipe_data.get('title', 'Imported Recipe'), 1000),
+                    'description': safe_truncate(recipe_data.get('description', ''), 2000),
                     'prep_time': recipe_data.get('prep_time'),
                     'cook_time': recipe_data.get('cook_time'),
                     'servings': recipe_data.get('servings'),
                     'instructions': recipe_data.get('instructions', []),
-                    'ingredients': [{'name': ing, 'amount': '', 'notes': ''} for ing in recipe_data.get('ingredients', [])],
+                    'ingredients': [{'name': safe_truncate(ing, 1000), 'amount': '', 'notes': ''} for ing in recipe_data.get('ingredients', [])],
                     'categories': [],
                     'tags': [],
                     'source_type': source,
@@ -295,11 +303,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     'raw_text_preview': import_result.get('raw_text_preview', '')[:500]
                 }, status=status.HTTP_200_OK)
             
-            # Create the recipe
+            # Create the recipe with text truncation to prevent database errors
+            def safe_truncate(text, max_length):
+                """Safely truncate text to max_length"""
+                if not text:
+                    return text
+                return text[:max_length] if len(text) > max_length else text
+            
             recipe = Recipe.objects.create(
                 user=request.user,
-                title=recipe_data.get('title', 'Imported Recipe'),
-                description=recipe_data.get('description', ''),
+                title=safe_truncate(recipe_data.get('title', 'Imported Recipe'), 1000),
+                description=safe_truncate(recipe_data.get('description', ''), 2000),  # TextField, but still limit
                 prep_time=recipe_data.get('prep_time'),
                 cook_time=recipe_data.get('cook_time'),
                 servings=recipe_data.get('servings'),
@@ -307,11 +321,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 source=source
             )
             
-            # Create ingredients
+            # Create ingredients with text truncation
             for i, ingredient_text in enumerate(recipe_data.get('ingredients', [])):
                 Ingredient.objects.create(
                     recipe=recipe,
-                    name=ingredient_text,
+                    name=safe_truncate(ingredient_text, 1000),
                     order=i + 1
                 )
             

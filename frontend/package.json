@@ -1,6 +1,6 @@
 {
   "name": "quasar-project",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "description": "A Quasar Project",
   "productName": "Quasar App",
   "author": "Tim Vogt Kruitbosch <Tim.Vogt@kruitbosch.nl>",
@@ -11,6 +11,7 @@
     "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
+    "prebuild": "node ../generate-version.js",
     "build": "quasar build",
     "serve": "quasar build && npx serve dist/spa -s -l 8080",
     "postinstall": "quasar prepare"

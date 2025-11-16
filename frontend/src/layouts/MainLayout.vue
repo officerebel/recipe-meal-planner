@@ -89,6 +89,11 @@
 
         <EssentialLink v-for="link in secondaryLinks" :key="link.title" v-bind="link" />
       </q-list>
+
+      <!-- Version Info at bottom of drawer -->
+      <div class="absolute-bottom q-pa-sm">
+        <VersionInfo />
+      </div>
     </q-drawer>
 
     <q-page-container>
@@ -105,6 +110,7 @@ import { useAuthStore } from 'src/stores/auth'
 
 
 import EssentialLink from 'components/EssentialLink.vue'
+import VersionInfo from 'components/VersionInfo.vue'
 
 const router = useRouter()
 const $q = useQuasar()
