@@ -256,14 +256,15 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
             os.makedirs(MEDIA_ROOT, exist_ok=True)
             print(f"Using fallback media directory: {MEDIA_ROOT}")
     
-    # Add database connection options for Railway
-    DATABASES['default'].update({
-        'OPTIONS': {
-            'connect_timeout': 60,
-            'options': '-c default_transaction_isolation=read_committed'
-        },
-        'CONN_MAX_AGE': 600,
-    })
+    # Only add PostgreSQL-specific options if using PostgreSQL
+    if DATABASES['default']['ENGINE'] != 'django.db.backends.sqlite3':
+        DATABASES['default'].update({
+            'OPTIONS': {
+                'connect_timeout': 60,
+                'options': '-c default_transaction_isolation=read_committed'
+            },
+            'CONN_MAX_AGE': 600,
+        })
 else:
     # Local development - ensure media directory exists
     try:
