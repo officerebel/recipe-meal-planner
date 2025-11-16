@@ -24,4 +24,4 @@ RUN npm install -g serve
 EXPOSE $PORT
 
 # Start the application
-CMD ["sh", "-c", "serve dist/spa -s -p $PORT"]
+CMD ["sh", "-c", "serve dist/spa -s --listen ${PORT:-8080}"]

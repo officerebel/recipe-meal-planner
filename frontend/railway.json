@@ -7,6 +7,6 @@
   "deploy": {
     "healthcheckPath": "/",
     "healthcheckTimeout": 300,
-    "startCommand": "serve dist/spa -s -p $PORT"
+    "startCommand": "serve dist/spa -s --listen $PORT"
   }
 }
