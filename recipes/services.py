@@ -144,45 +144,55 @@ class RecipeParser:
         lines = text.strip().split('\n')
         
         # Try to find a title in the first few lines
-        for line in lines[:5]:
+        for line in lines[:10]:
             line = line.strip()
             if line and len(line) > 3:
                 # Skip lines that look like headers or metadata
                 skip_keywords = [
                     'page', 'recipe', 'ingredients', 'instructions', 'serves', 'prep time',
-                    'ingrediënten', 'bereidingswijze', 'voor', 'personen', 'bereidingstijd',
-                    'minuten', 'preparation', 'cooking time'
+                    'ingrediënten', 'bereidingswijze', 'personen', 'bereidingstijd',
+                    'minuten', 'preparation', 'cooking time', 'voor 2', 'voor 4',
+                    'bereiding', 'kooktijd', 'totale tijd'
                 ]
                 
-                if not any(keyword in line.lower() for keyword in skip_keywords):
-                    # Extract title before common patterns
-                    title_end_patterns = [
-                        r'\s+voor\s+\d+\s+personen?',  # "Voor 2 personen"
-                        r'\s+bereidingstijd:?',         # "Bereidingstijd:"
-                        r'\s+ingrediënten:?',          # "Ingrediënten:"
-                        r'\s+serves?\s+\d+',           # "Serves 4"
-                        r'\s+prep\s+time:?',           # "Prep time:"
-                        r'\s+preparation\s+time:?',    # "Preparation time:"
-                    ]
-                    
-                    for pattern in title_end_patterns:
-                        match = re.search(pattern, line, re.IGNORECASE)
-                        if match:
-                            title = line[:match.start()].strip()
-                            if title and len(title) > 3:
-                                return title
-                    
-                    # If no pattern matches and line is reasonable length, use it
-                    if len(line) < 100:
-                        return line
+                # Skip if line is just a keyword
+                if any(line.lower() == keyword for keyword in skip_keywords):
+                    continue
+                
+                # Skip if line contains only numbers and common words
+                if re.match(r'^[\d\s:]+$', line):
+                    continue
+                
+                # Extract title before common patterns
+                title_end_patterns = [
+                    r'\s+voor\s+\d+\s+personen?',  # "Voor 2 personen"
+                    r'\s+bereidingstijd:?',         # "Bereidingstijd:"
+                    r'\s+ingrediënten:?',          # "Ingrediënten:"
+                    r'\s+serves?\s+\d+',           # "Serves 4"
+                    r'\s+prep\s+time:?',           # "Prep time:"
+                    r'\s+preparation\s+time:?',    # "Preparation time:"
+                ]
+                
+                title = line
+                for pattern in title_end_patterns:
+                    match = re.search(pattern, line, re.IGNORECASE)
+                    if match:
+                        title = line[:match.start()].strip()
+                        break
+                
+                # Check if this looks like a valid title
+                if title and len(title) > 3 and len(title) < 100:
+                    # Skip if it contains obvious non-title patterns
+                    if not any(keyword in title.lower() for keyword in skip_keywords):
+                        return title
         
-        # Fallback to first non-empty line
-        for line in lines:
+        # Fallback to first non-empty line that's not too short
+        for line in lines[:15]:
             line = line.strip()
-            if line:
-                return line[:100]  # Limit title length
+            if line and len(line) > 5 and len(line) < 100:
+                return line
         
-        return "Imported Recipe"
+        return "Geïmporteerd Recept"
     
     def _extract_prep_time(self, text: str) -> Optional[int]:
         """Extract preparation time in minutes"""
@@ -243,15 +253,13 @@ class RecipeParser:
         
         # Find ingredients section - support multiple languages with better patterns
         ingredients_patterns = [
+            # Dutch patterns - most specific first
+            r'ingrediënten[:\s]*\n(.*?)(?=\n\s*(?:bereidingswijze|bereiding|instructies?|methode|dressing|voedingswaarde)\s*[:\n]|$)',
+            r'ingrediënten[:\s]*(.*?)(?=bereidingswijze|bereiding|instructies?|methode|dressing|voedingswaarde)',
             # English patterns
             r'ingredients?[:\s]*\n(.*?)(?=\n\s*(?:instructions?|method|directions?|preparation|bereidingswijze)\s*[:\n]|$)',
-            # Dutch patterns - more specific
-            r'ingrediënten[:\s]*\n(.*?)(?=\n\s*(?:bereidingswijze|instructies?|methode|dressing)\s*[:\n]|$)',
-            r'ingrediënten[:\s]*(.*?)(?=bereidingswijze|instructies?|methode|dressing)',
             # French patterns
             r'ingrédients[:\s]*\n(.*?)(?=\n\s*(?:préparation|instructions?|méthode)\s*[:\n]|$)',
-            # Fallback - look for bullet point sections before instructions
-            r'((?:^\s*[●•*\-]\s*.+\n?)+)(?=.*(?:bereidingswijze|instructions?|method))',
         ]
         
         ingredients_match = None
@@ -259,14 +267,6 @@ class RecipeParser:
             ingredients_match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
             if ingredients_match:
                 break
-        
-        if not ingredients_match:
-            # Try alternative patterns - look for bullet points or numbered lists
-            ingredients_match = re.search(
-                r'((?:^\s*[●•*-]\s*.+\n?)+)',
-                text,
-                re.MULTILINE
-            )
         
         if ingredients_match:
             ingredients_text = ingredients_match.group(1).strip()
@@ -278,7 +278,7 @@ class RecipeParser:
                 # Remove empty items and clean up
                 ingredient_items = [item.strip() for item in ingredient_items if item.strip()]
                 
-                # Remove the first item if it's just the header (like "Ingrediënten:")
+                # Remove the first item if it's just the header
                 if ingredient_items and any(keyword in ingredient_items[0].lower() for keyword in ['ingrediënten', 'ingredients', 'ingrédients']):
                     ingredient_items = ingredient_items[1:]
             else:
@@ -287,22 +287,44 @@ class RecipeParser:
                 ingredient_items = []
                 for line in lines:
                     line = line.strip()
-                    if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
-                               line.startswith('●') or re.match(r'^\d+\.?\s', line)):
+                    if not line:
+                        continue
+                    
+                    # Skip section headers
+                    if any(keyword in line.lower() for keyword in ['ingrediënten', 'ingredients', 'ingrédients']) and len(line) < 20:
+                        continue
+                    
+                    # Check if line looks like an ingredient (has bullet, number, or starts with amount/name)
+                    if (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
+                        line.startswith('●') or re.match(r'^\d+\.?\s', line) or
+                        re.match(r'^\d+', line)):  # Starts with a number (amount)
                         # Clean up the line
                         ingredient_text = re.sub(r'^[●•*\-\d\.]\s*', '', line).strip()
                         if ingredient_text:
                             ingredient_items.append(ingredient_text)
+                    elif ingredient_items:  # If we already found ingredients, this might be a continuation
+                        # But only if it doesn't look like a new section
+                        if not any(keyword in line.lower() for keyword in ['bereidingswijze', 'bereiding', 'instructions', 'method', 'preparation']):
+                            ingredient_items.append(line)
             
             # Process each ingredient item
             order = 0
             for ingredient_text in ingredient_items:
                 ingredient_text = ingredient_text.strip()
-                if ingredient_text and self._is_valid_ingredient(ingredient_text):
-                    # Try to parse amount and ingredient name - support metric units
+                if not ingredient_text or len(ingredient_text) < 2:
+                    continue
+                
+                if self._is_valid_ingredient(ingredient_text):
+                    # Try to parse amount and ingredient name - support metric units and Dutch patterns
                     amount_patterns = [
-                        r'^(\d+(?:[.,]\d+)?\s*(?:gram|g|ml|l|el|tl|theelepel|eetlepel|handjes?))\s+(.+)',
-                        r'^([\d\s/½¼¾]+(?:\s*(?:cups?|tbsp|tsp|oz|lb|g|kg|ml|l|gram|el|theelepel|eetlepel|handjes?))?)\s+(.+)',
+                        # Specific metric patterns (most specific first)
+                        r'^(\d+(?:[.,]\d+)?\s*(?:gram|g|ml|liter|l|el|tl|theelepels?|eetlepels?|handjes?|snufjes?|takjes?|blaadjes?))\s+(.+)',
+                        # Number + unit patterns
+                        r'^(\d+(?:[.,]\d+)?\s*(?:cups?|tbsp|tsp|oz|lb|kg|dl))\s+(.+)',
+                        # Just number patterns (like "2 tomaten")
+                        r'^(\d+(?:[.,]\d+)?)\s+(.+)',
+                        # Fraction patterns
+                        r'^([½¼¾⅓⅔⅛⅜⅝⅞])\s+(.+)',
                     ]
                     
                     amount = ''
@@ -330,16 +352,16 @@ class RecipeParser:
         return ingredients
     
     def _extract_instructions(self, text: str) -> List[str]:
-        """Extract cooking instructions"""
+        """Extract cooking instructions as a list of steps"""
         instructions = []
         
         # Find instructions section - support multiple languages with better patterns
         instructions_patterns = [
             # English patterns
             r'(?:instructions?|method|directions?|preparation)[:\s]*\n(.*?)(?=\n\s*(?:notes?|tips?)\s*[:\n]|$)',
-            # Dutch patterns - more specific
-            r'bereidingswijze[:\s]*\n?(.*?)(?=\n\s*(?:opmerkingen?|tips?|dressing\s+ingrediënten)\s*[:\n]|$)',
-            r'bereidingswijze[:\s]*(.*?)(?=dressing\s+ingrediënten|$)',
+            # Dutch patterns - more specific and flexible
+            r'bereidingswijze[:\s]*\n?(.*?)(?=\n\s*(?:opmerkingen?|tips?|dressing\s+ingrediënten|voedingswaarde)\s*[:\n]|$)',
+            r'bereiding[:\s]*\n?(.*?)(?=\n\s*(?:opmerkingen?|tips?|dressing\s+ingrediënten|voedingswaarde)\s*[:\n]|$)',
             # French patterns
             r'(?:préparation|instructions?|méthode)[:\s]*\n(.*?)(?=\n\s*(?:notes?|conseils?)\s*[:\n]|$)',
         ]
@@ -351,35 +373,52 @@ class RecipeParser:
                 break
         
         if instructions_match:
-            instructions_text = instructions_match.group(1)
+            instructions_text = instructions_match.group(1).strip()
             
-            # If it's a single paragraph, treat it as one instruction
-            if '\n' not in instructions_text.strip() or len(instructions_text.strip().split('\n')) <= 2:
-                instructions.append(instructions_text.strip())
-            else:
-                lines = instructions_text.strip().split('\n')
+            # Split into lines and process
+            lines = instructions_text.split('\n')
+            current_step = []
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
                 
-                current_step = []
-                for line in lines:
-                    line = line.strip()
-                    if line:
-                        if re.match(r'^\d+\.?\s', line):
-                            # New numbered step
-                            if current_step:
-                                instructions.append(' '.join(current_step))
-                            current_step = [re.sub(r'^\d+\.?\s*', '', line)]
-                        elif line.startswith('-') or line.startswith('•') or line.startswith('●'):
-                            # Bullet point step
-                            if current_step:
-                                instructions.append(' '.join(current_step))
-                            current_step = [re.sub(r'^[●•\-]\s*', '', line)]
-                        else:
-                            # Continuation of current step
-                            current_step.append(line)
-                
-                # Add the last step
-                if current_step:
-                    instructions.append(' '.join(current_step))
+                # Check if this is a new numbered step
+                if re.match(r'^\d+[\.\)]\s+', line):
+                    # Save previous step if exists
+                    if current_step:
+                        step_text = ' '.join(current_step).strip()
+                        if step_text:
+                            instructions.append(step_text)
+                    # Start new step (remove number)
+                    current_step = [re.sub(r'^\d+[\.\)]\s+', '', line)]
+                # Check if this is a bullet point
+                elif re.match(r'^[●•\-\*]\s+', line):
+                    # Save previous step if exists
+                    if current_step:
+                        step_text = ' '.join(current_step).strip()
+                        if step_text:
+                            instructions.append(step_text)
+                    # Start new step (remove bullet)
+                    current_step = [re.sub(r'^[●•\-\*]\s+', '', line)]
+                else:
+                    # Continuation of current step
+                    if current_step:
+                        current_step.append(line)
+                    else:
+                        # Start new step if no current step
+                        current_step = [line]
+            
+            # Add the last step
+            if current_step:
+                step_text = ' '.join(current_step).strip()
+                if step_text:
+                    instructions.append(step_text)
+            
+            # If we didn't find any structured steps, treat the whole text as one instruction
+            if not instructions and instructions_text:
+                instructions.append(instructions_text)
         
         return instructions
     

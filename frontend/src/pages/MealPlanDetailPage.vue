@@ -161,34 +161,40 @@
 
           <q-card-section>
             <q-form @submit.prevent="addMeal" class="q-gutter-md">
-              <!-- Recipe Search -->
-              <q-input
-                v-model="recipeSearchQuery"
-                placeholder="Search recipes..."
-                outlined
-                dense
-                clearable
-                :disable="addingMeal"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="search" />
-                </template>
-              </q-input>
-
-              <q-select
-                v-model="newMeal.recipe_id"
-                :options="filteredRecipeOptions"
-                option-value="id"
-                option-label="title"
-                label="Recipe *"
-                outlined
-                emit-value
-                map-options
-                :rules="[(val) => !!val || 'Recipe is required']"
-                :disable="addingMeal"
-                use-input
-                @filter="filterRecipes"
-              />
+              <!-- Recipe Selection with Add Button -->
+              <div class="row q-gutter-sm">
+                <div class="col">
+                  <q-select
+                    v-model="newMeal.recipe_id"
+                    :options="filteredRecipeOptions"
+                    option-value="id"
+                    option-label="title"
+                    label="Recipe *"
+                    outlined
+                    emit-value
+                    map-options
+                    :rules="[(val) => !!val || 'Recipe is required']"
+                    :disable="addingMeal"
+                    use-input
+                    @filter="filterRecipes"
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="restaurant" />
+                    </template>
+                  </q-select>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    icon="add"
+                    color="secondary"
+                    label="Nieuw Recept"
+                    outline
+                    @click="goToNewRecipe"
+                    :disable="addingMeal"
+                    style="height: 56px"
+                  />
+                </div>
+              </div>
 
               <q-input
                 v-model.number="newMeal.servings_planned"
@@ -484,6 +490,27 @@ const showAddMealDialog = (date, mealType) => {
 const filterRecipes = (val, update) => {
   update(() => {
     recipeSearchQuery.value = val
+  })
+}
+
+const goToNewRecipe = () => {
+  // Save current state to return to
+  const returnRoute = {
+    name: 'meal-plan-detail',
+    params: { id: props.id },
+    query: {
+      addMeal: 'true',
+      date: selectedDate.value,
+      mealType: selectedMealType.value
+    }
+  }
+
+  // Navigate to recipe creation page
+  router.push({
+    name: 'recipe-create',
+    query: {
+      returnTo: JSON.stringify(returnRoute)
+    }
   })
 }
 

@@ -167,16 +167,13 @@
             </ul>
           </div>
 
-          <div v-if="getRecipeData().instructions && (Array.isArray(getRecipeData().instructions) ? getRecipeData().instructions.length : getRecipeData().instructions.trim().length)">
+          <div v-if="getRecipeData().instructions && getRecipeData().instructions.length">
             <strong>Instructions:</strong>
-            <ol v-if="Array.isArray(getRecipeData().instructions)">
-              <li v-for="instruction in getRecipeData().instructions" :key="instruction">
+            <ol>
+              <li v-for="(instruction, index) in getRecipeData().instructions" :key="index">
                 {{ instruction }}
               </li>
             </ol>
-            <div v-else class="q-pl-md">
-              {{ getRecipeData().instructions }}
-            </div>
           </div>
         </div>
 

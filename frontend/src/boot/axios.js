@@ -5,7 +5,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: process.env.NODE_ENV === 'production'
     ? 'https://proud-mercy-production.up.railway.app/api'
-    : 'http://localhost:8001/api',
+    : 'http://localhost:8000/api',
   timeout: 30000, // Increased to 30 seconds for Railway
   headers: {
     'Content-Type': 'application/json',
@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'development') {
   if (!token) {
     console.log('No auth token found, attempting demo login...')
     // Try to login with demo user
-    axios.post('http://localhost:8001/api/auth/login/', {
+    axios.post('http://localhost:8000/api/auth/login/', {
       email: 'demo@example.com',
       password: 'demo123'
     }).then(response => {
