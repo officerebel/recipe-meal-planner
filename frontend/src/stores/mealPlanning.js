@@ -424,7 +424,10 @@ export const useMealPlanningStore = defineStore('mealPlanning', {
         })
         // Don't add to local state here - let the page refresh to get the latest data
         // Clear cache to ensure fresh data on next fetch
-        this.cache.shoppingListsLastFetch = null
+        this.cache.shoppingListsLastFetch = {
+          personal: null,
+          family: null
+        }
         return shoppingList
       } catch (error) {
         this.error = error.message || 'Failed to generate shopping list'
