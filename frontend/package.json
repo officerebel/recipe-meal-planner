@@ -11,7 +11,7 @@
     "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
-    "prebuild": "node generate-version.js",
+    "prebuild": "node generate-version.cjs",
     "build": "quasar build",
     "serve": "quasar build && npx serve dist/spa -s -l 8080",
     "postinstall": "quasar prepare"
