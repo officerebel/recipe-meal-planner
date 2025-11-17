@@ -22,9 +22,9 @@ except ImportError:
 try:
     import easyocr
     EASYOCR_AVAILABLE = True
-except ImportError:
+except (ImportError, AttributeError) as e:
     EASYOCR_AVAILABLE = False
-    logger.warning("easyocr not available - advanced image OCR will be disabled")
+    logger.warning(f"easyocr not available - advanced image OCR will be disabled: {e}")
 
 try:
     import cv2
