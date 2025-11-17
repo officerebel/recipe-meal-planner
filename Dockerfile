@@ -24,8 +24,8 @@ ENV DJANGO_SETTINGS_MODULE=recipe_meal_planner.settings
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Expose port
-EXPOSE $PORT
+# Expose port (Railway uses PORT env var, typically 8080)
+EXPOSE 8080
 
 # Start command
-CMD ["sh", "-c", "python manage.py migrate && gunicorn recipe_meal_planner.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"]
+CMD ["sh", "-c", "python manage.py migrate && gunicorn recipe_meal_planner.wsgi:application --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 2"]
