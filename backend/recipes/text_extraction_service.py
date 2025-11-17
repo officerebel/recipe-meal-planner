@@ -11,27 +11,13 @@ import PyPDF2
 
 logger = logging.getLogger(__name__)
 
-# Try to import OCR libraries
-try:
-    import pytesseract
-    TESSERACT_AVAILABLE = True
-except ImportError:
-    TESSERACT_AVAILABLE = False
-    logger.warning("pytesseract not available - image OCR will be disabled")
+# Disable OCR libraries in production to avoid import issues
+# These cause AttributeError with numpy/opencv compatibility issues
+TESSERACT_AVAILABLE = False
+EASYOCR_AVAILABLE = False
+OPENCV_AVAILABLE = False
 
-try:
-    import easyocr
-    EASYOCR_AVAILABLE = True
-except (ImportError, AttributeError) as e:
-    EASYOCR_AVAILABLE = False
-    logger.warning(f"easyocr not available - advanced image OCR will be disabled: {e}")
-
-try:
-    import cv2
-    OPENCV_AVAILABLE = True
-except (ImportError, AttributeError) as e:
-    OPENCV_AVAILABLE = False
-    logger.warning(f"opencv not available - image preprocessing will be limited: {e}")
+logger.info("OCR libraries disabled - using PyPDF2 text extraction only")
 
 
 class TextExtractionService:
