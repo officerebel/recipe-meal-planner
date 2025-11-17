@@ -159,9 +159,14 @@ python manage.py dumpdata > backup.json
 
 ## 📚 Documentation
 
-- **[PDF Parser Tests](recipes/TEST_README.md)** - Test suite for PDF recipe parsing
-- **[12-Factor App](docs/12_FACTOR_APP.md)** - Implementation of 12-factor methodology
-- **[API Documentation](http://localhost:8000/api/schema/swagger-ui/)** - Interactive API docs (when running)
+**→ [Complete Documentation Index](docs/INDEX.md)** ← Start here!
+
+### Quick Links:
+- **[Technical Design](docs/TECHNICAL_DESIGN.md)** - Complete technical specification
+- **[Environment Variables](docs/ENVIRONMENT_VARIABLES.md)** - Configuration reference
+- **[PDF Parser Tests](backend/recipes/TEST_README.md)** - Test suite documentation
+- **[12-Factor App](docs/12_FACTOR_APP.md)** - Architecture best practices
+- **[API Documentation](https://proud-mercy-production.up.railway.app/api/docs/)** - Interactive Swagger UI
 
 ## 🎯 12-Factor App Compliance
 
