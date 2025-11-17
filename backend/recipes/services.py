@@ -376,35 +376,46 @@ class RecipeParser:
                 break
         
         if instructions_match:
-            instructions_text = instructions_match.group(1)
+            instructions_text = instructions_match.group(1).strip()
             
-            # If it's a single paragraph, treat it as one instruction
-            if '\n' not in instructions_text.strip() or len(instructions_text.strip().split('\n')) <= 2:
-                instructions.append(instructions_text.strip())
-            else:
-                lines = instructions_text.strip().split('\n')
-                
-                current_step = []
-                for line in lines:
-                    line = line.strip()
-                    if line:
-                        if re.match(r'^\d+\.?\s', line):
-                            # New numbered step
-                            if current_step:
-                                instructions.append(' '.join(current_step))
-                            current_step = [re.sub(r'^\d+\.?\s*', '', line)]
-                        elif line.startswith('-') or line.startswith('•') or line.startswith('●'):
-                            # Bullet point step
-                            if current_step:
-                                instructions.append(' '.join(current_step))
-                            current_step = [re.sub(r'^[●•\-]\s*', '', line)]
-                        else:
-                            # Continuation of current step
-                            current_step.append(line)
-                
-                # Add the last step
-                if current_step:
-                    instructions.append(' '.join(current_step))
+            # First, try to split by newlines
+            lines = instructions_text.split('\n')
+            
+            # If no newlines or very few, try to split by sentences (periods followed by capital letter)
+            if len(lines) <= 2:
+                # Split on period followed by capital letter or period at end
+                sentences = re.split(r'\.(?=[A-Z])', instructions_text)
+                lines = [s.strip() + '.' for s in sentences if s.strip()]
+            
+            current_step = []
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                if re.match(r'^\d+\.?\s', line):
+                    # New numbered step
+                    if current_step:
+                        instructions.append(' '.join(current_step))
+                    current_step = [re.sub(r'^\d+\.?\s*', '', line)]
+                elif line.startswith('-') or line.startswith('•') or line.startswith('●'):
+                    # Bullet point step
+                    if current_step:
+                        instructions.append(' '.join(current_step))
+                    current_step = [re.sub(r'^[●•\-]\s*', '', line)]
+                else:
+                    # Check if this looks like a new sentence/step
+                    if current_step and len(line) > 20 and line[0].isupper():
+                        # Likely a new step
+                        instructions.append(' '.join(current_step))
+                        current_step = [line]
+                    else:
+                        # Continuation of current step
+                        current_step.append(line)
+            
+            # Add the last step
+            if current_step:
+                instructions.append(' '.join(current_step))
         
         return instructions
     
