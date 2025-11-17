@@ -29,9 +29,9 @@ except ImportError:
 try:
     import cv2
     OPENCV_AVAILABLE = True
-except ImportError:
+except (ImportError, AttributeError) as e:
     OPENCV_AVAILABLE = False
-    logger.warning("opencv not available - image preprocessing will be limited")
+    logger.warning(f"opencv not available - image preprocessing will be limited: {e}")
 
 
 class TextExtractionService:
