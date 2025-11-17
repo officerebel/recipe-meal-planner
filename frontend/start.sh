@@ -1,4 +1,6 @@
 #!/bin/sh
 # Start script for Railway deployment
-echo "Starting serve on port ${PORT:-8080}"
-exec serve dist/spa -s --listen tcp://0.0.0.0:${PORT:-8080}
+# Railway automatically sets PORT, but we'll default to 3000 if not set
+export PORT=${PORT:-3000}
+echo "Starting serve on port $PORT"
+exec serve dist/spa -s -l $PORT
