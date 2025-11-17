@@ -73,10 +73,14 @@ Complete documentation overview for the Recipe Meal Planner application.
 | Document | Status | Last Updated | Completeness |
 |----------|--------|--------------|--------------|
 | Main README | ✅ Complete | 2025-11-17 | 100% |
+| Technical Design | ✅ Complete | 2025-11-17 | 100% |
 | Environment Variables | ✅ Complete | 2025-11-17 | 100% |
 | 12-Factor App | ⚠️ In Progress | 2025-11-17 | 60% |
 | PDF Parser Tests | ✅ Complete | 2025-11-17 | 100% |
-| Technical Design | 🚧 In Progress | 2025-11-17 | 40% |
+| User Guide | ✅ Complete | 2025-11-17 | 100% |
+| Deployment Guide | ✅ Complete | 2025-11-17 | 100% |
+
+**Note:** 34 old documentation files have been archived to `docs/archive/` for historical reference.
 
 ---
 
