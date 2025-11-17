@@ -177,6 +177,21 @@
               :disable="generating"
             />
 
+            <q-select
+              v-model="newShoppingList.listType"
+              :options="listTypeOptions"
+              label="Shopping List Type *"
+              outlined
+              emit-value
+              map-options
+              :rules="[(val) => !!val || 'Please select a type']"
+              :disable="generating"
+            >
+              <template v-slot:prepend>
+                <q-icon :name="newShoppingList.listType === 'family' ? 'family_restroom' : 'person'" />
+              </template>
+            </q-select>
+
             <div class="row q-gutter-md">
               <div class="col">
                 <q-input
@@ -298,7 +313,13 @@ const newShoppingList = ref({
   start_date: '',
   end_date: '',
   meal_plan_ids: [],
+  listType: 'personal', // 'personal' or 'family'
 })
+
+const listTypeOptions = [
+  { label: 'Personal Shopping List', value: 'personal', icon: 'person' },
+  { label: 'Family Shopping List', value: 'family', icon: 'family_restroom' }
+]
 
 // Computed
 const mealPlanOptions = computed(() => mealPlanningStore.mealPlans)
@@ -594,6 +615,7 @@ const resetGenerateForm = () => {
     start_date: '',
     end_date: '',
     meal_plan_ids: [],
+    listType: activeTab.value, // Default to current tab
   }
 }
 

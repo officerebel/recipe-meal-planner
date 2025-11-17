@@ -141,57 +141,67 @@ class RecipeParser:
     
     def _extract_title(self, text: str) -> str:
         """Extract recipe title from text"""
-        lines = text.strip().split('\n')
+        lines = [line.strip() for line in text.strip().split('\n') if line.strip()]
+        
+        # Skip keywords that indicate metadata, not titles
+        skip_keywords = [
+            'page', 'ingredients', 'instructions', 'serves', 'prep time',
+            'ingrediënten', 'bereidingswijze', 'bereidingstijd',
+            'minuten', 'preparation', 'cooking time',
+            'bereiding', 'kooktijd', 'totale tijd', 'personen'
+        ]
         
         # Try to find a title in the first few lines
-        for line in lines[:10]:
-            line = line.strip()
-            if line and len(line) > 3:
-                # Skip lines that look like headers or metadata
-                skip_keywords = [
-                    'page', 'recipe', 'ingredients', 'instructions', 'serves', 'prep time',
-                    'ingrediënten', 'bereidingswijze', 'personen', 'bereidingstijd',
-                    'minuten', 'preparation', 'cooking time', 'voor 2', 'voor 4',
-                    'bereiding', 'kooktijd', 'totale tijd'
-                ]
-                
-                # Skip if line is just a keyword
-                if any(line.lower() == keyword for keyword in skip_keywords):
-                    continue
-                
-                # Skip if line contains only numbers and common words
-                if re.match(r'^[\d\s:]+$', line):
-                    continue
-                
-                # Extract title before common patterns
-                title_end_patterns = [
-                    r'\s+voor\s+\d+\s+personen?',  # "Voor 2 personen"
-                    r'\s+bereidingstijd:?',         # "Bereidingstijd:"
-                    r'\s+ingrediënten:?',          # "Ingrediënten:"
-                    r'\s+serves?\s+\d+',           # "Serves 4"
-                    r'\s+prep\s+time:?',           # "Prep time:"
-                    r'\s+preparation\s+time:?',    # "Preparation time:"
-                ]
-                
-                title = line
-                for pattern in title_end_patterns:
-                    match = re.search(pattern, line, re.IGNORECASE)
-                    if match:
-                        title = line[:match.start()].strip()
-                        break
-                
-                # Check if this looks like a valid title
-                if title and len(title) > 3 and len(title) < 100:
-                    # Skip if it contains obvious non-title patterns
-                    if not any(keyword in title.lower() for keyword in skip_keywords):
-                        return title
+        for i, line in enumerate(lines[:15]):
+            # Skip very short lines
+            if len(line) < 4:
+                continue
+            
+            # Skip lines that are just numbers, times, or dates
+            if re.match(r'^[\d\s:\/\-\.]+$', line):
+                continue
+            
+            # Skip if line is just a keyword
+            if any(line.lower() == keyword for keyword in skip_keywords):
+                continue
+            
+            # Skip lines that start with common metadata patterns
+            if re.match(r'^(voor|serves?|prep|cook|bereiding|ingrediënten)', line, re.IGNORECASE):
+                continue
+            
+            # Extract title before common patterns that appear on same line
+            title = line
+            title_end_patterns = [
+                r'\s+voor\s+\d+\s+personen?',  # "Voor 2 personen"
+                r'\s+bereidingstijd:?',         # "Bereidingstijd:"
+                r'\s+ingrediënten:?',          # "Ingrediënten:"
+                r'\s+serves?\s+\d+',           # "Serves 4"
+                r'\s+prep\s+time:?',           # "Prep time:"
+            ]
+            
+            for pattern in title_end_patterns:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match:
+                    title = line[:match.start()].strip()
+                    break
+            
+            # Check if this looks like a valid title
+            if title and 4 <= len(title) <= 100:
+                # Skip if it contains obvious non-title patterns
+                if not any(keyword in title.lower() for keyword in skip_keywords):
+                    # Clean up the title
+                    title = re.sub(r'\s+', ' ', title)  # Normalize whitespace
+                    logger.info(f"Extracted title: '{title}' from line {i}: '{line}'")
+                    return title
         
-        # Fallback to first non-empty line that's not too short
-        for line in lines[:15]:
-            line = line.strip()
-            if line and len(line) > 5 and len(line) < 100:
-                return line
+        # Fallback: use first substantial line
+        for line in lines[:20]:
+            if 5 <= len(line) <= 100:
+                clean_title = re.sub(r'\s+', ' ', line)
+                logger.warning(f"Using fallback title: '{clean_title}'")
+                return clean_title
         
+        logger.warning("Could not extract title, using default")
         return "Geïmporteerd Recept"
     
     def _extract_prep_time(self, text: str) -> Optional[int]:
