@@ -99,38 +99,60 @@ DATABASES = {
 # Similar to IDistributedCache in .NET Core
 # https://docs.djangoproject.com/en/5.2/topics/cache/
 
-REDIS_URL = get_env_str('REDIS_URL', 'redis://localhost:6379/0')
+REDIS_URL = get_env_str('REDIS_URL', None)
 
+# Only use Redis if explicitly configured AND not localhost in production
+use_redis = False
 if REDIS_URL and 'redis://' in REDIS_URL:
-    # Use Redis for caching (production and local with Docker)
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'SOCKET_CONNECT_TIMEOUT': 5,
-                'SOCKET_TIMEOUT': 5,
-                'RETRY_ON_TIMEOUT': True,
-                'MAX_CONNECTIONS': 50,
-                'CONNECTION_POOL_KWARGS': {
-                    'max_connections': 50,
-                    'retry_on_timeout': True,
+    # In production, don't use localhost Redis
+    if 'RAILWAY_ENVIRONMENT' in os.environ and 'localhost' in REDIS_URL:
+        print("⚠️  Ignoring localhost Redis in production environment")
+        REDIS_URL = None
+    else:
+        use_redis = True
+
+if use_redis:
+    try:
+        # Use Redis for caching (production and local with Docker)
+        CACHES = {
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': REDIS_URL,
+                'OPTIONS': {
+                    'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                    'SOCKET_CONNECT_TIMEOUT': 5,
+                    'SOCKET_TIMEOUT': 5,
+                    'RETRY_ON_TIMEOUT': True,
+                    'MAX_CONNECTIONS': 50,
+                    'CONNECTION_POOL_KWARGS': {
+                        'max_connections': 50,
+                        'retry_on_timeout': True,
+                    },
+                    # Compression for large objects
+                    'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                    # Ignore connection errors (graceful degradation)
+                    'IGNORE_EXCEPTIONS': True,
                 },
-                # Compression for large objects
-                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
-            },
-            'KEY_PREFIX': 'recipe_planner',
-            'TIMEOUT': 300,  # 5 minutes default
+                'KEY_PREFIX': 'recipe_planner',
+                'TIMEOUT': 300,  # 5 minutes default
+            }
         }
-    }
-    
-    # Use Redis for sessions (like distributed session state in .NET)
-    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-    SESSION_CACHE_ALIAS = 'default'
-    SESSION_COOKIE_AGE = 86400  # 24 hours
-    
-    print(f"✅ Redis cache configured: {REDIS_URL}")
+        
+        # Use Redis for sessions (like distributed session state in .NET)
+        SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+        SESSION_CACHE_ALIAS = 'default'
+        SESSION_COOKIE_AGE = 86400  # 24 hours
+        
+        print(f"✅ Redis cache configured: {REDIS_URL}")
+    except Exception as e:
+        print(f"⚠️  Redis configuration failed: {e}")
+        print("⚠️  Falling back to local memory cache")
+        CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'LOCATION': 'unique-snowflake',
+            }
+        }
 else:
     # Fallback to local memory cache (development without Docker)
     CACHES = {
@@ -139,7 +161,11 @@ else:
             'LOCATION': 'unique-snowflake',
         }
     }
-    print("⚠️  Using local memory cache (Redis not available)")
+    if 'RAILWAY_ENVIRONMENT' in os.environ:
+        print("ℹ️  Redis not configured - using local memory cache")
+        print("   Add Redis in Railway: New → Database → Add Redis")
+    else:
+        print("ℹ️  Using local memory cache (development mode)")
 
 
 # Password validation
@@ -362,7 +388,22 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
         }
         print(f"✅ Using PostgreSQL database in production")
     else:
-        print("⚠️  Warning: No DATABASE_URL found in production environment")
+        # CRITICAL: Railway needs PostgreSQL!
+        print("❌ ERROR: No DATABASE_URL found in production environment")
+        print("❌ Please add PostgreSQL database in Railway dashboard:")
+        print("   1. Go to your Railway project")
+        print("   2. Click 'New' → 'Database' → 'Add PostgreSQL'")
+        print("   3. Railway will auto-set DATABASE_URL")
+        print("   4. Redeploy your service")
+        
+        # Use SQLite as emergency fallback (will lose data on restart!)
+        print("⚠️  Using SQLite as fallback - DATA WILL BE LOST ON RESTART!")
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': '/tmp/emergency_db.sqlite3',
+            }
+        }
     
     # Security settings for production
     SECURE_SSL_REDIRECT = True

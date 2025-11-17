@@ -10,9 +10,9 @@ The application follows a layered architecture with clear separation of concerns
 
 ```
 ┌─────────────────────────────────────────┐
-│      Frontend (React/Vue.js)           │
+│      Frontend (Quasar/Vue 3)           │
 ├─────────────────────────────────────────┤
-│      Web API (ASP.NET Core)             │
+│      REST API (Django REST Framework)   │
 ├─────────────────────────────────────────┤
 │        Business Logic Layer             │
 │  ┌─────────────┐  ┌─────────────────┐   │
@@ -22,22 +22,24 @@ The application follows a layered architecture with clear separation of concerns
 ├─────────────────────────────────────────┤
 │         Data Access Layer               │
 │  ┌─────────────┐  ┌─────────────────┐   │
-│  │   Recipe    │  │   Meal Plan     │   │
-│  │ Repository  │  │   Repository    │   │
+│  │   Django    │  │   Django        │   │
+│  │   Models    │  │   Models        │   │
 │  └─────────────┘  └─────────────────┘   │
 ├─────────────────────────────────────────┤
-│   Storage Layer (SQLite + EF Core)      │
+│   Storage Layer (PostgreSQL/Django ORM) │
 └─────────────────────────────────────────┘
 ```
 
 ### Technology Stack
 
-- **Frontend**: React or Vue.js with TypeScript for type safety
-- **Backend**: ASP.NET Core with C#
-- **Database**: SQLite with Entity Framework Core (easily upgradeable to SQL Server/PostgreSQL)
-- **PDF Processing**: iTextSharp or PdfPig library for text extraction
-- **UI Components**: Material-UI (React) or Quasar (Vue.js)
-- **State Management**: React Context API/Redux Toolkit (React) or Pinia (Vue.js)
+- **Frontend**: Quasar Framework (Vue 3) with TypeScript
+- **Backend**: Django 5.2 with Python 3.12
+- **Database**: PostgreSQL (production) / SQLite (development) with Django ORM
+- **PDF Processing**: PyPDF2 and pdfplumber for text extraction
+- **UI Components**: Quasar components (Material Design)
+- **State Management**: Pinia (Vue 3)
+- **Caching**: Redis (optional, with graceful fallback to local memory)
+- **Deployment**: Railway (backend + PostgreSQL + Redis), Railway (frontend)
 
 ## Components and Interfaces
 

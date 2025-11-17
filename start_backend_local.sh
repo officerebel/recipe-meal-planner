@@ -2,6 +2,11 @@
 
 echo "🚀 Starting Backend Server Locally"
 echo "=================================="
+echo ""
+
+# Set Redis URL for local development
+export REDIS_URL=redis://localhost:6379/0
+echo "📦 Redis URL: $REDIS_URL"
 
 # Check if virtual environment exists
 if [ ! -d "recipe_planner_env" ]; then
