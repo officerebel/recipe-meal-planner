@@ -171,6 +171,10 @@ class RecipeParser:
             
             # Extract title before common patterns that appear on same line
             title = line
+            
+            # Remove common prefixes like "recept", "recipe", etc.
+            title = re.sub(r'^(recept|recipe|gerecht)\s+', '', title, flags=re.IGNORECASE).strip()
+            
             title_end_patterns = [
                 r'\s+voor\s+\d+\s+personen?',  # "Voor 2 personen"
                 r'\s+bereidingstijd:?',         # "Bereidingstijd:"
