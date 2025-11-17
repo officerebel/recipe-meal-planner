@@ -23,5 +23,9 @@ RUN npm install -g serve
 # Expose the port that Railway will provide
 EXPOSE $PORT
 
+# Copy start script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Start the application
-CMD ["sh", "-c", "serve dist/spa -s --listen tcp://0.0.0.0:${PORT:-8080}"]
+CMD ["/start.sh"]
