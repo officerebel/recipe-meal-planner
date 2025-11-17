@@ -406,7 +406,8 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
         }
     
     # Security settings for production
-    SECURE_SSL_REDIRECT = True
+    # Note: Railway handles SSL at edge, don't redirect at app level
+    SECURE_SSL_REDIRECT = False  # Railway handles this
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -426,6 +427,8 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
         'localhost',
         '127.0.0.1',
         '.railway.app',  # Allow all Railway subdomains
+        '.railway.internal',  # Allow Railway internal network
+        '*',  # Allow all (Railway handles security at edge)
     ]
 
 # Static files configuration
