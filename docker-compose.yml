@@ -1,0 +1,52 @@
+# Docker Compose for Local Development
+# Similar to .NET development with SQL Server + Redis
+
+version: '3.8'
+
+services:
+  # Redis - Like MemoryCache but persistent and distributed
+  redis:
+    image: redis:7-alpine
+    container_name: recipe_planner_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # PostgreSQL - Like SQL Server in .NET
+  db:
+    image: postgres:16-alpine
+    container_name: recipe_planner_db
+    environment:
+      POSTGRES_DB: recipe_planner
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# Usage:
+# Start services: docker-compose up -d
+# Stop services: docker-compose down
+# View logs: docker-compose logs -f redis
+# Connect to Redis CLI: docker-compose exec redis redis-cli

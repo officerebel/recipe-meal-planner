@@ -95,6 +95,53 @@ DATABASES = {
 }
 
 
+# Cache Configuration (Redis)
+# Similar to IDistributedCache in .NET Core
+# https://docs.djangoproject.com/en/5.2/topics/cache/
+
+REDIS_URL = get_env_str('REDIS_URL', 'redis://localhost:6379/0')
+
+if REDIS_URL and 'redis://' in REDIS_URL:
+    # Use Redis for caching (production and local with Docker)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'RETRY_ON_TIMEOUT': True,
+                'MAX_CONNECTIONS': 50,
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+                # Compression for large objects
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            },
+            'KEY_PREFIX': 'recipe_planner',
+            'TIMEOUT': 300,  # 5 minutes default
+        }
+    }
+    
+    # Use Redis for sessions (like distributed session state in .NET)
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+    SESSION_COOKIE_AGE = 86400  # 24 hours
+    
+    print(f"✅ Redis cache configured: {REDIS_URL}")
+else:
+    # Fallback to local memory cache (development without Docker)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
+    print("⚠️  Using local memory cache (Redis not available)")
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
