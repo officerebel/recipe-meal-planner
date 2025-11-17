@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
+from .config import get_env_bool, get_env_list, get_env_str, get_env_int, is_production
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,18 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-import os
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-l2z061+7n6%!+%qem6wtu!u99*r1_#_oa@lh#_@mrul@nmq$t%')
+SECRET_KEY = get_env_str('SECRET_KEY', 'django-insecure-l2z061+7n6%!+%qem6wtu!u99*r1_#_oa@lh#_@mrul@nmq$t%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = get_env_bool('DEBUG', default=not is_production())
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '.railway.app',  # Allow all Railway subdomains
-    'proud-mercy-production.up.railway.app',  # Specific Railway domain
-]
+# Parse ALLOWED_HOSTS from environment variable (comma-separated)
+ALLOWED_HOSTS = get_env_list('ALLOWED_HOSTS', default='localhost,127.0.0.1,.railway.app')
 
 
 # Application definition
@@ -273,18 +270,16 @@ else:
         # If we can't create the directory, use a temp directory
         import tempfile
         MEDIA_ROOT = tempfile.mkdtemp(prefix='recipe_media_')
-# CORS settings for frontend development
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:9000",
-    "http://127.0.0.1:9000",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+# CORS settings - configurable via environment
+CORS_ALLOWED_ORIGINS = get_env_list(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:9000,http://127.0.0.1:9000,http://localhost:3000,http://127.0.0.1:3000'
+)
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow all origins during development (remove in production)
-CORS_ALLOW_ALL_ORIGINS = True
+# Allow all origins only in development
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Allow specific headers for file uploads
 CORS_ALLOW_HEADERS = [
