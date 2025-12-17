@@ -15,7 +15,7 @@ export function getImageUrl(imagePath) {
 
   // Get the base URL from environment or axios config
   const baseURL = process.env.NODE_ENV === 'production'
-    ? 'https://proud-mercy-production.up.railway.app'
+    ? ''
     : 'http://localhost:8000'
 
   // Remove leading slash if present to avoid double slashes

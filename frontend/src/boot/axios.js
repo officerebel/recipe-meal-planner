@@ -4,7 +4,7 @@ import axios from 'axios'
 // Create axios instance
 const api = axios.create({
   baseURL: process.env.NODE_ENV === 'production'
-    ? 'https://proud-mercy-production.up.railway.app/api'
+    ? '/api'
     : 'http://localhost:8000/api',
   timeout: 30000, // Increased to 30 seconds for Railway
   headers: {

@@ -5,7 +5,7 @@ export const config = {
 
   // API configuration
   apiBaseUrl: process.env.NODE_ENV === 'production'
-    ? 'https://proud-mercy-production.up.railway.app/api'
+    ? '/api'
     : 'http://localhost:8000/api',
 
   // Feature flags

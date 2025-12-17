@@ -229,7 +229,7 @@ const handleRegister = async () => {
 
     // Use the configured API base URL
     const baseURL = process.env.NODE_ENV === 'production'
-      ? 'https://proud-mercy-production.up.railway.app/api'
+      ? '/api'
       : 'http://localhost:8000/api'
 
     const response = await fetch(`${baseURL}/auth/register/`, {
